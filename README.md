@@ -6,8 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Windows-0078D6.svg?logo=windows)](start.bat)
 [![Upstream: spotDL](https://img.shields.io/badge/Upstream-spotDL%20v4.5-green.svg)](https://github.com/spotDL/spotify-downloader)
-[![Quality: 320k](https://img.shields.io/badge/Audio-320%20kbps%20MP3-brightgreen.svg)](#features)
-[![Dependencies](https://img.shields.io/badge/Python%20%26%20FFmpeg-Self--Contained-orange.svg)](#dependencies--architecture)
+[![Quality: 320k](https://img.shields.io/badge/Audio-320%20kbps%20MP3-brightgreen.svg)](#-key-features)
+[![Dependencies](https://img.shields.io/badge/Python%20%26%20FFmpeg-Self--Contained-orange.svg)](#-overview)
 
 ---
 
