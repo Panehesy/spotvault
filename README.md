@@ -46,7 +46,7 @@
 ### 1. Download
 Clone this repository or download the ZIP:
 ```bash
-git clone https://github.com/your-username/spotvault.git
+git clone https://github.com/Panehesy/spotvault.git
 cd spotvault
 ```
 
