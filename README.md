@@ -7,19 +7,19 @@
 [![Platform](https://img.shields.io/badge/Platform-Windows-0078D6.svg?logo=windows)](start.bat)
 [![Upstream: spotDL](https://img.shields.io/badge/Upstream-spotDL%20v4.5-green.svg)](https://github.com/spotDL/spotify-downloader)
 [![Quality: 320k](https://img.shields.io/badge/Audio-320%20kbps%20MP3-brightgreen.svg)](#features)
-[![Setup: Zero](https://img.shields.io/badge/Setup-Zero%20Install-orange.svg)](#quick-start)
+[![Dependencies](https://img.shields.io/badge/Python%20%26%20FFmpeg-Self--Contained-orange.svg)](#dependencies--architecture)
 
 ---
 
 ## 📌 Overview
 
-**SpotVault** is a streamlined, portable distribution designed for batch downloading and organizing Spotify playlists. Built on top of **spotDL**, it packages necessary fixes and batch automation into a single, double-clickable pipeline without requiring Python, Node.js, or system-wide FFmpeg installations.
+**SpotVault** is a streamlined, portable distribution designed for batch downloading and organizing Spotify playlists. Built on top of the Python-based **spotDL** engine and **FFmpeg**, it packages all necessary dependencies and batch automation into a single, double-clickable pipeline without requiring you to manually install Python or configure system-wide FFmpeg in your Windows PATH.
 
 ---
 
 ## 🚀 Key Features
 
-* **⚡ Zero-Setup & 100% Portable:** Ready out-of-the-box. Does not touch your system PATH, registry, or require global runtime environments.
+* **⚡ Self-Contained & Portable:** While powered by Python and FFmpeg under the hood, SpotVault bundles the runtime into a standalone engine. You do not need to install Python on Windows or manually configure FFmpeg in your system PATH.
 * **🛡️ Bot-Detection Bypass:** Includes pre-configured mobile client emulation to prevent stream access blocks (`HTTP 403`).
 * **💎 Official Audio Guarantee (`--only-verified-results`):** Strictly enforces downloads from verified distributor audio (Official Artist Channels, Topic, VEVO). Rejects user-uploaded clips, lyric videos, and fan edits.
 * **📁 Multi-Playlist Batch Queue:** Reads all URLs line-by-line from `playlists.txt` and automatically creates dedicated folders for each playlist.
@@ -37,7 +37,7 @@
 | **Official Audio Enforcement** | N/A | ✅ Yes | ⚠️ Manual flag | **✅ Enforced by Default** |
 | **Batch Playlist Queue** | ❌ Rate-limited | ❌ Server cooldowns | ⚠️ Manual scripting | **✅ Automated (`playlists.txt`)** |
 | **Auto Per-Playlist Folders** | Manual | Manual | ⚠️ Manual flag | **✅ Automatic (`Downloads/{list}`)** |
-| **System Installation** | Python / Runtimes | Browser / Web | Python + FFmpeg | **✅ Portable (Zero Install)** |
+| **System Installation** | Python / Runtimes | Browser / Web | Manual Python + FFmpeg | **✅ Portable (No Manual Install)** |
 
 ---
 
@@ -94,7 +94,7 @@ spotvault/
 
 **SpotVault**, popüler açık kaynaklı **spotDL** motoru üzerine inşa edilmiş taşınabilir bir toplu Spotify arşivleme aracıdır.
 
-* **Sıfır Kurulum:** Python veya sistem geneli FFmpeg kurulumu gerektirmez.
+* **Sıfır Manuel Kurulum:** spotDL'in arka plandaki Python çalışma ortamı doğrudan taşınabilir `.exe` içine gömülüdür; FFmpeg ise yerel olarak yönetilir. Sisteminize elle Python kurmanız veya PATH değişkenleriyle uğraşmanız gerekmez.
 * **Bot Engeli Koruması:** Akış servislerinin bot engellerini aşan istemci ayarları hazır gelir.
 * **Yalnızca Resmi Kaynak:** `--only-verified-results` filtresi sayesinde amatör videoları eler, sadece plak şirketlerinin resmi stüdyo kayıtlarını indirir.
 * **Toplu Klasörleme:** `playlists.txt` içine eklenen tüm listeleri sırayla `Downloads/<Liste_Adı>/` klasörlerine 320 kbps MP3 olarak kaydeder.
