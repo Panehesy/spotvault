@@ -1,0 +1,13 @@
+# ==============================================================================
+# SpotVault - Playlist Queue Template
+# ==============================================================================
+# Instructions:
+# 1. Rename this file to `playlists.txt` (or create a new `playlists.txt`).
+# 2. Paste your Spotify playlist, album, or track links below (one per line).
+# 3. Double-click `start.bat` to begin downloading!
+# ==============================================================================
+
+# Examples:
+# https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
+# https://open.spotify.com/playlist/37i9dQZF1DX0XUsuxWHRQd
+# https://open.spotify.com/album/4m2880jivSbbyEGAKfITCa

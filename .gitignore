@@ -1,0 +1,35 @@
+# SpotVault - Git Ignore
+
+# Audio Downloads
+downloads/
+Downloads/
+music/
+Music/
+Muzikler/
+*.mp3
+*.flac
+*.m4a
+*.ogg
+*.opus
+*.wav
+
+# User-specific playlist files (keep playlists.example.txt)
+playlists.txt
+listeler.txt
+*.csv
+*.spotdl
+
+# Cache & Temporary Files
+core/*.exe
+*.exe
+.spotdl/
+temp/
+*.log
+*.incomplete
+
+# OS & Editor Files
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
