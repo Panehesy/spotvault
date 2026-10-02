@@ -16,32 +16,48 @@ $downloadDir = Join-Path $scriptRoot "Downloads"
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "       SpotVault - Spotify Playlist Archiver v1.0.0       " -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " [i] Mode       : Portable (Zero-Setup)" -ForegroundColor DarkGray
+Write-Host " [i] Mode       : Portable (Self-Contained Engine)" -ForegroundColor DarkGray
 Write-Host " [i] Quality    : 320 kbps MP3 (Embedded Studio Artwork)" -ForegroundColor DarkGray
 Write-Host " [i] Source     : Official Distributor Audio (Topic/VEVO)" -ForegroundColor DarkGray
 Write-Host " [i] Output Dir : $downloadDir" -ForegroundColor DarkGray
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Ensure SpotDL executable exists
+# 1. Ensure SpotDL executable exists (auto-download if cloned without binaries)
 if (-not (Test-Path $spotdlExe)) {
     Write-Host "[!] spotdl.exe not found in $coreDir. Downloading portable binary..." -ForegroundColor Yellow
     Invoke-WebRequest -Uri "https://github.com/spotDL/spotify-downloader/releases/download/v4.5.2/spotdl-4.5.2-win32.exe" -OutFile $spotdlExe
-    Write-Host "[+] Download complete." -ForegroundColor Green
+    Write-Host "[+] spotdl.exe downloaded successfully." -ForegroundColor Green
 }
 
-# Ensure playlists.txt exists
+# 2. Ensure local FFmpeg exists for audio conversion
+$ffmpegPath = Join-Path $env:USERPROFILE ".spotdl\ffmpeg.exe"
+if (-not (Test-Path $ffmpegPath)) {
+    Write-Host "[!] Local FFmpeg not found. Downloading via spotDL..." -ForegroundColor Yellow
+    & $spotdlExe --download-ffmpeg
+}
+
+# 3. Ensure local Deno exists for YouTube signature challenge bypass
+$denoPath = Join-Path $env:USERPROFILE ".spotdl\deno.exe"
+if (-not (Test-Path $denoPath)) {
+    Write-Host "[!] Local Deno not found. Downloading via spotDL..." -ForegroundColor Yellow
+    & $spotdlExe --download-deno
+}
+
+# 4. Ensure playlists.txt exists
 if (-not (Test-Path $playlistFile)) {
     if (Test-Path $exampleFile) {
         Copy-Item $exampleFile $playlistFile
         Write-Host "[!] 'playlists.txt' was created from template." -ForegroundColor Yellow
         Write-Host "[!] Please open 'playlists.txt', paste your Spotify playlist URLs, and run this again!" -ForegroundColor Yellow
-        pause
+        Write-Host "Press Enter to exit..." -ForegroundColor DarkGray
+        $null = Read-Host
         exit 0
     } else {
         New-Item -ItemType File -Path $playlistFile -Force | Out-Null
         Write-Host "[!] Empty 'playlists.txt' created. Please add Spotify playlist URLs and run again." -ForegroundColor Yellow
-        pause
+        Write-Host "Press Enter to exit..." -ForegroundColor DarkGray
+        $null = Read-Host
         exit 0
     }
 }
@@ -51,7 +67,8 @@ $urls = Get-Content $playlistFile | Where-Object { $_ -and -not $_.StartsWith("#
 if ($urls.Count -eq 0) {
     Write-Host "[!] 'playlists.txt' does not contain any valid links." -ForegroundColor Yellow
     Write-Host "[!] Add your Spotify playlist links and run again." -ForegroundColor DarkGray
-    pause
+    Write-Host "Press Enter to exit..." -ForegroundColor DarkGray
+    $null = Read-Host
     exit 0
 }
 
