@@ -183,8 +183,8 @@ class AdbSyncEngine:
         self.run_adb_command(["shell", "mkdir", "-p", remote_music_dir])
         self.run_adb_command(["shell", "mkdir", "-p", remote_playlist_dir])
 
-        self.log(f"[ADB] Starting push from {local_dir} to {remote_music_dir}...")
-        push_cmd = [self.adb_bin, "push", str(local_dir) + "/.", remote_music_dir]
+        self.log(f"[ADB] Starting incremental push from {local_dir} to {remote_music_dir}...")
+        push_cmd = [self.adb_bin, "push", "--sync", str(local_dir) + "/.", remote_music_dir]
 
         process = subprocess.Popen(
             push_cmd,

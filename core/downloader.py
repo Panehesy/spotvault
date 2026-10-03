@@ -106,12 +106,27 @@ class SpotVaultDownloader:
         self.config = config
         self.log_callback = log_callback or (lambda msg: None)
         self.progress_callback = progress_callback or (lambda cur, tot, status: None)
+        self.cancel_requested: bool = False
+        self.active_process: Optional[subprocess.Popen] = None
+        self.pool_playlist_mapping: Dict[str, List[str]] = {}
 
     def log(self, message: str) -> None:
         """
         Emits log entries to the configured receiver.
         """
         self.log_callback(message)
+
+    def cancel(self) -> None:
+        """
+        Signals cancellation to stop ongoing spotDL or matcher download tasks.
+        """
+        self.cancel_requested = True
+        self.log("[INFO] Cancellation requested by user...")
+        if self.active_process and self.active_process.poll() is None:
+            try:
+                self.active_process.terminate()
+            except Exception:
+                pass
 
     def download_playlist(
         self,
@@ -121,6 +136,7 @@ class SpotVaultDownloader:
         """
         Executes verified spotDL sync and triggers fallback matcher for missing tracks.
         """
+        self.cancel_requested = False
         stats = {
             "total": 0,
             "downloaded": 0,
@@ -129,14 +145,18 @@ class SpotVaultDownloader:
             "failed": 0
         }
 
+        clean_folder = sanitize_filename(playlist_name or ("Singles" if "/track/" in playlist_url else "Tracks"))
         cmd = build_spotdl_command(playlist_url, self.config, playlist_name=playlist_name)
         self.log(f"[SPOTDL] Starting download for: {playlist_url}")
 
         failed_tracks: List[Dict[str, Any]] = []
         current_query: Optional[str] = playlist_url if "/track/" in playlist_url else None
 
+        pool_dir = Path(self.config.output_dir) / "Pool"
+        initial_pool_files = set(f.name for f in pool_dir.glob("*.*")) if pool_dir.exists() else set()
+
         try:
-            process = subprocess.Popen(
+            self.active_process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
@@ -145,8 +165,16 @@ class SpotVaultDownloader:
                 errors="replace"
             )
 
-            if process.stdout:
-                for line in iter(process.stdout.readline, ""):
+            if self.active_process.stdout:
+                for line in iter(self.active_process.stdout.readline, ""):
+                    if self.cancel_requested:
+                        try:
+                            self.active_process.terminate()
+                        except Exception:
+                            pass
+                        self.log("[INFO] spotDL process stopped upon user request.")
+                        break
+
                     line_clean = line.strip()
                     if not line_clean:
                         continue
@@ -172,17 +200,31 @@ class SpotVaultDownloader:
                         elif current_query and not any(f["query"] == current_query for f in failed_tracks):
                             failed_tracks.append({"query": current_query})
 
-            process.wait()
-            if process.returncode != 0 and not stats["downloaded"] and not stats["skipped"] and not failed_tracks:
-                failed_tracks.append({"query": playlist_url})
+            self.active_process.wait()
+            if self.active_process.returncode != 0 and not stats["downloaded"] and not stats["skipped"] and not failed_tracks:
+                if not self.cancel_requested:
+                    failed_tracks.append({"query": playlist_url})
         except Exception as e:
             self.log(f"[ERROR] spotDL execution error: {e}")
-            if not stats["downloaded"] and not stats["skipped"]:
+            if not stats["downloaded"] and not stats["skipped"] and not self.cancel_requested:
                 failed_tracks.append({"query": playlist_url})
+        finally:
+            self.active_process = None
 
-        if failed_tracks:
+        if self.config.storage_mode == "pool_m3u8" and pool_dir.exists():
+            current_pool_files = set(f.name for f in pool_dir.glob("*.*"))
+            new_or_existing = current_pool_files - initial_pool_files
+            for fname in new_or_existing:
+                if fname not in self.pool_playlist_mapping.setdefault(clean_folder, []):
+                    self.pool_playlist_mapping[clean_folder].append(fname)
+
+        if failed_tracks and not self.cancel_requested:
             self.log(f"[MATCHER] {len(failed_tracks)} tracks missed by spotDL. Activating Smart Official Matcher...")
             for item in failed_tracks:
+                if self.cancel_requested:
+                    self.log("[INFO] Smart Matcher fallback cancelled by user.")
+                    break
+
                 query = item.get("query", "")
                 if not query:
                     continue
@@ -202,16 +244,35 @@ class SpotVaultDownloader:
                         "duration": 0
                     }
 
+                clean_artist = sanitize_filename(spotify_info.get("artist") or "Unknown Artist")
+                clean_title = sanitize_filename(spotify_info.get("title") or "Unknown Title")
+                track_filename = f"{clean_artist} - {clean_title}.{self.config.audio_format}"
+
+                if is_track_already_downloaded(
+                    output_dir=self.config.output_dir,
+                    playlist_name=clean_folder,
+                    artist=clean_artist,
+                    title=clean_title,
+                    audio_format=self.config.audio_format,
+                    storage_mode=self.config.storage_mode
+                ):
+                    self.log(f"[DIFF-SKIP] Track already archived locally: {track_filename}")
+                    stats["skipped"] += 1
+                    if self.config.storage_mode == "pool_m3u8":
+                        if track_filename not in self.pool_playlist_mapping.setdefault(clean_folder, []):
+                            self.pool_playlist_mapping[clean_folder].append(track_filename)
+                    continue
+
                 cand = find_best_official_candidate(
                     spotify_info,
                     custom_labels=self.config.custom_labels
                 )
                 if cand:
                     self.log(f"[MATCHER] Found official match: '{cand['title']}' on '{cand['channel']}'")
-                    clean_folder = sanitize_filename(playlist_name or ("Singles" if "/track/" in query else "Tracks"))
-                    clean_artist = sanitize_filename(spotify_info.get("artist") or "Unknown Artist")
-                    clean_title = sanitize_filename(spotify_info.get("title") or "Unknown Title")
-                    target_file = Path(self.config.output_dir) / clean_folder / f"{clean_artist} - {clean_title}.{self.config.audio_format}"
+                    if self.config.storage_mode == "pool_m3u8":
+                        target_file = Path(self.config.output_dir) / "Pool" / track_filename
+                    else:
+                        target_file = Path(self.config.output_dir) / clean_folder / track_filename
 
                     success = download_and_tag_track(
                         video_url=cand["url"],
@@ -225,6 +286,9 @@ class SpotVaultDownloader:
                     if success:
                         stats["fallback_matched"] += 1
                         self.log(f"[MATCHER] Successfully downloaded and tagged: {target_file.name}")
+                        if self.config.storage_mode == "pool_m3u8":
+                            if track_filename not in self.pool_playlist_mapping.setdefault(clean_folder, []):
+                                self.pool_playlist_mapping[clean_folder].append(track_filename)
                     else:
                         stats["failed"] += 1
                         self.log(f"[MATCHER] Failed to download or convert: {cand['title']}")

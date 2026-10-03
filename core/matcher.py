@@ -148,9 +148,10 @@ BLACKLIST_KEYWORDS = [
 def is_duration_acceptable(spotify_duration: float, yt_duration: float, tolerance: float = 3.0) -> bool:
     """
     Validates whether the YouTube video duration is within the acceptable tolerance of the Spotify track duration.
+    If either duration is unknown or non-positive, returns True to allow authority-based candidate scoring.
     """
     if spotify_duration <= 0 or yt_duration <= 0:
-        return False
+        return True
     return abs(spotify_duration - yt_duration) <= tolerance
 
 
@@ -215,7 +216,10 @@ def score_candidate(
     if not is_duration_acceptable(spotify_duration, yt_duration, tolerance=tolerance):
         return 0.0
 
-    score = 100.0 - (abs(spotify_duration - yt_duration) * 10.0)
+    if spotify_duration > 0 and yt_duration > 0:
+        score = 100.0 - (abs(spotify_duration - yt_duration) * 10.0)
+    else:
+        score = 75.0  # Base confidence when duration metadata is unavailable
 
     if is_channel_whitelisted(channel, custom_labels=custom_labels):
         score += 50.0

@@ -56,6 +56,7 @@ class SpotVaultApp(tk.Tk):
         self.log_queue: queue.Queue = queue.Queue()
         self.is_downloading = False
         self.is_syncing = False
+        self.active_downloader: Optional[SpotVaultDownloader] = None
 
         self._build_ui()
         self._load_saved_urls()
@@ -318,6 +319,20 @@ class SpotVaultApp(tk.Tk):
         )
         self.btn_download.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 8))
 
+        self.btn_cancel = tk.Button(
+            btn_bar,
+            text="⏹ İptal Et",
+            bg="#7f1d1d",
+            fg="#fecaca",
+            font=FONT_HEADING,
+            relief=tk.FLAT,
+            padx=14,
+            pady=8,
+            state=tk.DISABLED,
+            command=self._on_cancel_clicked
+        )
+        self.btn_cancel.pack(side=tk.LEFT, padx=(0, 8))
+
         btn_gen_m3u = tk.Button(
             btn_bar,
             text="🎵 Playlistleri Yenile (M3U8)",
@@ -326,7 +341,7 @@ class SpotVaultApp(tk.Tk):
             relief=tk.FLAT,
             padx=12,
             pady=8,
-            command=self._regenerate_playlists
+            command=lambda: self._regenerate_playlists()
         )
         btn_gen_m3u.pack(side=tk.RIGHT)
 
@@ -491,6 +506,14 @@ class SpotVaultApp(tk.Tk):
             except Exception:
                 pass
 
+    def _on_cancel_clicked(self) -> None:
+        """
+        Signals cancellation to the active downloader engine.
+        """
+        if self.active_downloader:
+            self.active_downloader.cancel()
+            self.btn_cancel.config(state=tk.DISABLED, text="⏳ Durduruluyor...")
+
     def _start_download_thread(self) -> None:
         """
         Validates input and launches background downloader execution.
@@ -508,27 +531,38 @@ class SpotVaultApp(tk.Tk):
 
         self.is_downloading = True
         self.btn_download.config(state=tk.DISABLED, text="⏳ İndiriliyor...")
+        self.btn_cancel.config(state=tk.NORMAL, text="⏹ İptal Et")
         threading.Thread(target=self._run_download_task, args=(urls,), daemon=True).start()
 
     def _run_download_task(self, urls: List[str]) -> None:
         """
-        Executes download and fallback matcher pipeline across provided URLs.
+        Executes download and fallback matcher pipeline across provided URLs with try/finally safety.
         """
         self.log_message(f"=== SpotVault İndirme İşlemi Başladı ({len(urls)} Liste) ===")
-        downloader = SpotVaultDownloader(self.config, log_callback=self.log_message)
+        try:
+            self.active_downloader = SpotVaultDownloader(self.config, log_callback=self.log_message)
 
-        for i, url in enumerate(urls, 1):
-            self.log_message(f"\n--- [{i}/{len(urls)}] İndiriliyor: {url} ---")
-            downloader.download_playlist(url)
+            for i, url in enumerate(urls, 1):
+                if self.active_downloader.cancel_requested:
+                    self.log_message("\n[INFO] İndirme kullanıcı tarafından iptal edildi.")
+                    break
+                self.log_message(f"\n--- [{i}/{len(urls)}] İndiriliyor: {url} ---")
+                self.active_downloader.download_playlist(url)
 
-        self.log_message("\n=== Tüm İndirmeler Tamamlandı. Playlistler Oluşturuluyor... ===")
-        self._regenerate_playlists()
+            if not self.active_downloader.cancel_requested:
+                self.log_message("\n=== Tüm İndirmeler Tamamlandı. Playlistler Oluşturuluyor... ===")
+                self._regenerate_playlists(pool_mapping=self.active_downloader.pool_playlist_mapping)
+                self.after(0, lambda: messagebox.showinfo("Tamamlandı", "Tüm parçalar ve çalma listeleri başarıyla arşivlendi."))
+        except Exception as e:
+            self.log_message(f"\n[HATA] İndirme işlemi sırasında hata oluştu: {e}")
+            self.after(0, lambda err=e: messagebox.showerror("Hata", f"İndirme hatası:\n{err}"))
+        finally:
+            self.is_downloading = False
+            self.active_downloader = None
+            self.after(0, lambda: self.btn_download.config(state=tk.NORMAL, text="🚀 İndirmeyi Başlat (Akıllı Eşleştirici Aktif)"))
+            self.after(0, lambda: self.btn_cancel.config(state=tk.DISABLED, text="⏹ İptal Et"))
 
-        self.is_downloading = False
-        self.after(0, lambda: self.btn_download.config(state=tk.NORMAL, text="🚀 İndirmeyi Başlat"))
-        self.after(0, lambda: messagebox.showinfo("Tamamlandı", "Tüm parçalar ve çalma listeleri başarıyla arşivlendi."))
-
-    def _regenerate_playlists(self) -> None:
+    def _regenerate_playlists(self, pool_mapping: Optional[Dict[str, List[str]]] = None) -> None:
         """
         Generates updated M3U8 playlist files for local tracks.
         """
@@ -536,7 +570,11 @@ class SpotVaultApp(tk.Tk):
         if not base_dir.is_absolute():
             base_dir = Path(__file__).resolve().parent.parent / self.config.output_dir
 
-        created = generate_all_playlists(output_dir=base_dir, storage_mode=self.config.storage_mode)
+        created = generate_all_playlists(
+            output_dir=base_dir,
+            storage_mode=self.config.storage_mode,
+            pool_playlist_mapping=pool_mapping
+        )
         self.log_message(f"[PLAYLIST] {len(created)} adet UTF-8 M3U8 çalma listesi güncellendi.")
 
     def _start_adb_push_thread(self) -> None:

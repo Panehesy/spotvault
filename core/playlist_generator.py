@@ -1,3 +1,4 @@
+import json
 import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
@@ -119,9 +120,32 @@ def generate_all_playlists(
         playlists_dir = base_dir / "Playlists"
         playlists_dir.mkdir(parents=True, exist_ok=True)
         pool_dir = base_dir / "Pool"
+        mapping_file = playlists_dir / "pool_mapping.json"
+
+        active_mapping: Dict[str, List[str]] = {}
+        if mapping_file.exists():
+            try:
+                with open(mapping_file, "r", encoding="utf-8") as f:
+                    active_mapping = json.load(f)
+            except Exception:
+                active_mapping = {}
 
         if pool_playlist_mapping:
-            for pl_name, filenames in pool_playlist_mapping.items():
+            for pl_name, fnames in pool_playlist_mapping.items():
+                existing_fnames = active_mapping.get(pl_name, [])
+                for fn in fnames:
+                    if fn not in existing_fnames:
+                        existing_fnames.append(fn)
+                active_mapping[pl_name] = existing_fnames
+
+            try:
+                with open(mapping_file, "w", encoding="utf-8") as f:
+                    json.dump(active_mapping, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
+
+        if active_mapping:
+            for pl_name, filenames in active_mapping.items():
                 tracks = []
                 for fname in filenames:
                     file_path = pool_dir / fname
@@ -132,5 +156,20 @@ def generate_all_playlists(
                 playlist_file = playlists_dir / f"{pl_name}.m3u8"
                 write_playlist_file(playlist_file, tracks)
                 generated_files.append(playlist_file)
+        elif pool_dir.exists():
+            pool_files = [
+                f for f in pool_dir.iterdir()
+                if f.is_file() and f.suffix.lower() in SUPPORTED_AUDIO_EXTENSIONS
+            ]
+            if pool_files:
+                pool_files.sort(key=lambda p: p.name.lower())
+                tracks = []
+                for pf in pool_files:
+                    meta = inspect_audio_file(pf)
+                    meta["relative_path"] = f"../Pool/{pf.name}"
+                    tracks.append(meta)
+                all_tracks_file = playlists_dir / "All_Tracks.m3u8"
+                write_playlist_file(all_tracks_file, tracks)
+                generated_files.append(all_tracks_file)
 
     return generated_files
