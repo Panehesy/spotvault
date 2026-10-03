@@ -13,6 +13,7 @@ Muzikler/
 *.opus
 *.wav
 *.m3u8
+*.lrc
 
 # User Specific Playlist & Cache
 .spotdl/

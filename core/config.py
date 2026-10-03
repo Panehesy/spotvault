@@ -64,9 +64,12 @@ class SpotVaultConfig:
         Persists the current configuration state to a JSON file on disk.
         """
         target_path = Path(path)
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(target_path, "w", encoding="utf-8") as f:
-            f.write(self.to_json())
+        try:
+            target_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(target_path, "w", encoding="utf-8") as f:
+                f.write(self.to_json())
+        except (IOError, OSError, ValueError) as e:
+            raise IOError(f"Failed to persist SpotVault configuration to '{target_path}': {e}") from e
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "SpotVaultConfig":

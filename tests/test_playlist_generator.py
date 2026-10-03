@@ -30,6 +30,23 @@ class TestPlaylistGenerator(unittest.TestCase):
             self.assertTrue(created.exists())
             self.assertIn("Test - Track", created.read_text(encoding="utf-8"))
 
+    def test_pool_m3u8_generation_paths(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_dir = Path(tmpdir)
+            pool_dir = out_dir / "Pool"
+            pool_dir.mkdir()
+            track_file = pool_dir / "Artist - Track.mp3"
+            track_file.write_bytes(b"dummy")
+
+            mapping = {"Favorites": ["Artist - Track.mp3"]}
+            created = generate_all_playlists(output_dir=out_dir, storage_mode="pool_m3u8", pool_playlist_mapping=mapping)
+            self.assertEqual(len(created), 1)
+            pl_file = created[0]
+            self.assertEqual(pl_file.name, "Favorites.m3u8")
+            self.assertEqual(pl_file.parent.name, "Playlists")
+            content = pl_file.read_text(encoding="utf-8")
+            self.assertIn("../Pool/Artist - Track.mp3", content)
+
 
 if __name__ == "__main__":
     unittest.main()

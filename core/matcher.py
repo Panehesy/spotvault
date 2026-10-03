@@ -83,21 +83,36 @@ RECORD_LABEL_WHITELIST = [
 ]
 
 
-def load_custom_labels(file_path: Optional[Union[str, Path]] = None) -> List[str]:
+_CUSTOM_LABELS_CACHE: Dict[str, tuple] = {}
+
+
+def load_custom_labels(file_path: Optional[Union[str, Path]] = None, use_cache: bool = True) -> List[str]:
     """
     Loads custom record labels from a text file, filtering empty lines and comments.
+    Utilizes an in-memory mtime cache to avoid redundant filesystem I/O.
     """
     if file_path is None:
-        file_path = Path(__file__).resolve().parent.parent / "custom_labels.txt"
+        target_path = Path(__file__).resolve().parent.parent / "custom_labels.txt"
     else:
-        file_path = Path(file_path)
+        target_path = Path(file_path)
 
-    if not file_path.exists():
+    if not target_path.exists():
         return []
+
+    target_key = str(target_path.resolve())
+    try:
+        mtime = target_path.stat().st_mtime
+    except Exception:
+        mtime = 0.0
+
+    if use_cache and target_key in _CUSTOM_LABELS_CACHE:
+        cached_mtime, cached_labels = _CUSTOM_LABELS_CACHE[target_key]
+        if cached_mtime == mtime:
+            return list(cached_labels)
 
     labels: List[str] = []
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(target_path, "r", encoding="utf-8") as f:
             for line in f:
                 line_str = line.strip()
                 if line_str and not line_str.startswith("#"):
@@ -105,13 +120,16 @@ def load_custom_labels(file_path: Optional[Union[str, Path]] = None) -> List[str
     except Exception:
         return []
 
-    return list(dict.fromkeys(labels))
+    unique_labels = list(dict.fromkeys(labels))
+    if use_cache:
+        _CUSTOM_LABELS_CACHE[target_key] = (mtime, unique_labels)
+    return list(unique_labels)
 
 
 def get_active_whitelist(custom_labels: Optional[List[str]] = None) -> List[str]:
     """
     Returns the comprehensive active label whitelist by combining built-in labels,
-    runtime custom labels, and entries from custom_labels.txt.
+    runtime custom labels, and cached entries from custom_labels.txt.
     """
     active = list(RECORD_LABEL_WHITELIST)
     if custom_labels:
@@ -180,6 +198,7 @@ def is_channel_whitelisted(channel: str, custom_labels: Optional[List[str]] = No
     """
     Determines if the given YouTube channel is a verified record label or an official Topic channel.
     Supports runtime custom labels and auto-loaded custom_labels.txt.
+    Enforces word-boundary matching on short labels to prevent false positives.
     """
     normalized = channel.lower().strip()
 
@@ -188,7 +207,15 @@ def is_channel_whitelisted(channel: str, custom_labels: Optional[List[str]] = No
 
     whitelist = get_active_whitelist(custom_labels=custom_labels)
     for label in whitelist:
-        if label in normalized:
+        clean_lbl = label.strip()
+        if not clean_lbl:
+            continue
+        if clean_lbl == "vevo" and (normalized.endswith("vevo") or re.search(r"\bvevo\b", normalized)):
+            return True
+        prefix = r"\b" if clean_lbl[0].isalnum() else ""
+        suffix = r"\b" if clean_lbl[-1].isalnum() else ""
+        pattern = prefix + re.escape(clean_lbl) + suffix
+        if re.search(pattern, normalized):
             return True
 
     return False

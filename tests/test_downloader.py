@@ -27,6 +27,12 @@ class TestDownloaderHelpers(unittest.TestCase):
         self.assertEqual(sanitize_filename("Track <1> *test*"), "Track _1_ _test_")
         self.assertEqual(sanitize_filename("..."), "Untitled")
 
+    def test_sanitize_filename_max_length_truncation(self):
+        long_title = "A" * 200
+        sanitized = sanitize_filename(long_title, max_length=120)
+        self.assertEqual(len(sanitized), 120)
+        self.assertEqual(sanitized, "A" * 120)
+
     def test_is_track_already_downloaded(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             out_dir = Path(tmpdir)
@@ -70,6 +76,61 @@ class TestDownloaderHelpers(unittest.TestCase):
         self.assertIn("auto", cmd)
         self.assertIn("--generate-lrc", cmd)
         self.assertIn("--only-verified-results", cmd)
+
+
+class TestDownloaderExecution(unittest.TestCase):
+    from unittest.mock import patch, MagicMock
+
+    @patch("subprocess.Popen")
+    def test_download_playlist_parsing_and_stats(self, mock_popen):
+        from unittest.mock import MagicMock
+        from core.downloader import SpotVaultDownloader
+
+        mock_process = MagicMock()
+        mock_process.stdout.readline.side_effect = [
+            "Processing query: Daft Punk - One More Time\n",
+            'Downloaded "Daft Punk - One More Time"\n',
+            "Processing query: Daft Punk - Aerodynamic\n",
+            'Skipping "Daft Punk - Aerodynamic" (already exists)\n',
+            ""
+        ]
+        mock_process.poll.return_value = 0
+        mock_process.wait.return_value = 0
+        mock_process.returncode = 0
+        mock_popen.return_value = mock_process
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config = SpotVaultConfig(output_dir=tmpdir, storage_mode="standalone")
+            downloader = SpotVaultDownloader(config)
+            stats = downloader.download_playlist("https://open.spotify.com/playlist/test", playlist_name="DaftPunk")
+
+            self.assertEqual(stats["downloaded"], 1)
+            self.assertEqual(stats["skipped"], 1)
+            self.assertEqual(stats["failed"], 0)
+
+    @patch("subprocess.Popen")
+    def test_download_playlist_cancellation(self, mock_popen):
+        from unittest.mock import MagicMock
+        from core.downloader import SpotVaultDownloader
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config = SpotVaultConfig(output_dir=tmpdir)
+            downloader = SpotVaultDownloader(config)
+
+            mock_process = MagicMock()
+            def readline_generator():
+                downloader.cancel()
+                yield "Processing query: Long Track\n"
+                yield ""
+
+            gen = readline_generator()
+            mock_process.stdout.readline.side_effect = lambda: next(gen, "")
+            mock_process.returncode = 0
+            mock_popen.return_value = mock_process
+
+            downloader.download_playlist("https://open.spotify.com/playlist/test")
+            self.assertTrue(downloader.cancel_requested)
+            mock_process.terminate.assert_called()
 
 
 if __name__ == "__main__":

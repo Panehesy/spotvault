@@ -11,12 +11,15 @@ from core.matcher import find_best_official_candidate, download_and_tag_track, f
 INVALID_FILENAME_CHARS = r'[<>:"/\\|?*]'
 
 
-def sanitize_filename(name: str) -> str:
+def sanitize_filename(name: str, max_length: int = 120) -> str:
     """
-    Cleans a string to be safely used as a Windows filename or directory name.
+    Cleans a string to be safely used as a Windows filename or directory name,
+    enforcing max_length truncation to prevent Windows MAX_PATH (260 char) overflows.
     """
     sanitized = re.sub(INVALID_FILENAME_CHARS, "_", name)
     sanitized = sanitized.strip(". ")
+    if len(sanitized) > max_length:
+        sanitized = sanitized[:max_length].rstrip(". ")
     return sanitized if sanitized else "Untitled"
 
 

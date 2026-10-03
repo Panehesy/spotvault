@@ -62,7 +62,7 @@ The legacy v1.0.0 batch wrapper has been completely re-engineered into a self-co
 
 ## 🎧 Audio Pipeline & Fidelity Transparency
 
-SpotVault is built with complete engineering honesty regarding streaming audio sources:
+Unlike many web converters and commercial downloaders that mislead users with impossible claims of *"Direct 320 kbps lossless Spotify rips"* (which is technically impossible without violating DRM or risking premium accounts), SpotVault is built with complete engineering honesty regarding streaming audio sources:
 
 - **Source Streams:** Audio tracks retrieved via YouTube streams are served natively as Opus (~128–160 kbps) or AAC (~128 kbps).
 - **M4A / Auto (Recommended):** Preserves native source audio streams without generational re-encoding loss or unnecessary file size inflation.
@@ -164,7 +164,7 @@ v1.0.0 sürümündeki batch wrapper yapısı, v1.0.1 ile birlikte kendi kendine 
 
 ## 🎧 Ses Motoru ve Bitrate Şeffaflığı
 
-SpotVault, ses kalitesi ve formatları konusunda teknik gerçekliğe tam bağlıdır:
+Piyasadaki pek çok ticari veya çevrim içi aracın, kullanıcılara asılsız şekilde *"Spotify'dan doğrudan 320 kbps kayıpsız indirme"* vaat ederek (DRM korumasını kırmadan veya hesap güvenliğini riske atmadan teknik olarak imkansız olan bir iddia) yanıltıcı bilgi sunmasının aksine, SpotVault ses kalitesi ve formatları konusunda teknik gerçekliğe tam bağlıdır:
 
 - **Kaynak Akış:** YouTube kaynaklı ses akışları doğal olarak ~128–160 kbps Opus veya ~128 kbps AAC formatındadır.
 - **M4A / Auto (Tavsiye Edilen):** Kaynaktaki orijinal ses akışını ek bir transcode kaybına uğratmadan doğrudan kaydeder.

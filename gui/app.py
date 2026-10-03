@@ -333,7 +333,7 @@ class SpotVaultApp(tk.Tk):
         )
         self.btn_cancel.pack(side=tk.LEFT, padx=(0, 8))
 
-        btn_gen_m3u = tk.Button(
+        self.btn_gen_m3u = tk.Button(
             btn_bar,
             text="🎵 Playlistleri Yenile (M3U8)",
             bg=BG_SURFACE,
@@ -341,9 +341,9 @@ class SpotVaultApp(tk.Tk):
             relief=tk.FLAT,
             padx=12,
             pady=8,
-            command=lambda: self._regenerate_playlists()
+            command=self._start_regenerate_playlists_thread
         )
-        btn_gen_m3u.pack(side=tk.RIGHT)
+        self.btn_gen_m3u.pack(side=tk.RIGHT)
 
     def _build_log_console(self, parent: tk.Frame) -> None:
         """
@@ -576,6 +576,26 @@ class SpotVaultApp(tk.Tk):
             pool_playlist_mapping=pool_mapping
         )
         self.log_message(f"[PLAYLIST] {len(created)} adet UTF-8 M3U8 çalma listesi güncellendi.")
+
+    def _start_regenerate_playlists_thread(self) -> None:
+        """
+        Launches an asynchronous worker thread to regenerate M3U8 playlists without freezing the GUI.
+        """
+        self.btn_gen_m3u.config(state=tk.DISABLED, text="⏳ Yenileniyor...")
+        threading.Thread(target=self._run_regenerate_playlists_task, daemon=True).start()
+
+    def _run_regenerate_playlists_task(self) -> None:
+        """
+        Worker execution for background M3U8 playlist generation.
+        """
+        try:
+            self._regenerate_playlists()
+            self.after(0, lambda: messagebox.showinfo("Başarılı", "Çalma listeleri (M3U8) başarıyla yenilendi."))
+        except Exception as e:
+            self.log_message(f"[HATA] Playlist yenileme başarısız: {e}")
+            self.after(0, lambda err=e: messagebox.showerror("Hata", f"Playlist yenileme hatası:\n{err}"))
+        finally:
+            self.after(0, lambda: self.btn_gen_m3u.config(state=tk.NORMAL, text="🎵 Playlistleri Yenile (M3U8)"))
 
     def _start_adb_push_thread(self) -> None:
         """

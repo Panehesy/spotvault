@@ -154,7 +154,7 @@ class AdbSyncEngine:
         self,
         local_music_dir: Union[str, Path],
         remote_music_dir: str = "/sdcard/Music/Muzikler",
-        remote_playlist_dir: str = "/sdcard/Playlists"
+        remote_playlist_dir: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Executes pre-checks, non-destructive file push, playlist transfer, and media scanning.
@@ -162,6 +162,9 @@ class AdbSyncEngine:
         local_dir = Path(local_music_dir)
         if not local_dir.exists():
             raise FileNotFoundError(f"Local music directory not found: {local_dir}")
+
+        if remote_playlist_dir is None:
+            remote_playlist_dir = f"{remote_music_dir.rstrip('/')}/Playlists"
 
         status = self.get_device_status()
         if not status["connected"] or status["state"] != "device":
@@ -179,11 +182,13 @@ class AdbSyncEngine:
                 f"Insufficient phone storage: {avail_gb:.2f} GB available, {req_gb:.2f} GB required."
             )
 
-        self.log(f"[ADB] Creating remote directories on device: {remote_music_dir}")
+        self.log(f"[ADB] Creating remote directories on device: {remote_music_dir} and {remote_playlist_dir}")
         mk1 = self.run_adb_command(["shell", "mkdir", "-p", remote_music_dir])
         mk2 = self.run_adb_command(["shell", "mkdir", "-p", remote_playlist_dir])
         if mk1.returncode != 0:
             raise RuntimeError(f"Failed to create remote directory '{remote_music_dir}': {mk1.stderr.strip()}")
+        if mk2.returncode != 0:
+            raise RuntimeError(f"Failed to create remote playlist directory '{remote_playlist_dir}': {mk2.stderr.strip()}")
 
         self.log(f"[ADB] Starting incremental push from {local_dir} to {remote_music_dir}...")
         push_cmd = [self.adb_bin, "push", "--sync", str(local_dir) + "/.", remote_music_dir]

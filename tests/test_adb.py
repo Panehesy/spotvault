@@ -41,6 +41,32 @@ emulator-5554\toffline
         status = engine.get_device_status()
         self.assertIn("connected", status)
 
+    def test_sync_library_raises_when_remote_playlist_mkdir_fails(self):
+        from unittest.mock import MagicMock
+        from core.adb_sync import AdbSyncEngine
+        import tempfile
+
+        engine = AdbSyncEngine()
+        engine.get_device_status = MagicMock(return_value={"connected": True, "state": "device", "serial": "TEST1234"})
+        engine.get_available_storage_bytes = MagicMock(return_value=10**10)
+
+        def mock_run(cmd):
+            res = MagicMock()
+            if "mkdir" in cmd and "/Playlists" in cmd[-1]:
+                res.returncode = 1
+                res.stderr = "Permission denied"
+            else:
+                res.returncode = 0
+                res.stderr = ""
+            return res
+
+        engine.run_adb_command = MagicMock(side_effect=mock_run)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with self.assertRaises(RuntimeError) as ctx:
+                engine.sync_library(local_music_dir=tmpdir)
+            self.assertIn("Failed to create remote playlist directory", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()

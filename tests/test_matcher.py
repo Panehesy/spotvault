@@ -63,6 +63,33 @@ class TestSmartOfficialMatcher(unittest.TestCase):
         self.assertTrue(is_channel_whitelisted("Sony Music Turkey"))
         self.assertFalse(is_channel_whitelisted("RandomFan99"))
 
+    def test_channel_whitelisting_word_boundary_avoids_false_positives(self):
+        self.assertFalse(is_channel_whitelisted("admc_gamer"))
+        self.assertFalse(is_channel_whitelisted("subkmatrix"))
+        self.assertFalse(is_channel_whitelisted("1234adventure"))
+        self.assertFalse(is_channel_whitelisted("vevox_gamer"))
+        self.assertTrue(is_channel_whitelisted("DMC Müzik"))
+        self.assertTrue(is_channel_whitelisted("BKM"))
+        self.assertTrue(is_channel_whitelisted("TaylorSwiftVEVO"))
+        self.assertTrue(is_channel_whitelisted("4AD"))
+
+    def test_whitelist_caching(self):
+        from core.matcher import load_custom_labels
+        import tempfile
+        from pathlib import Path
+        with tempfile.NamedTemporaryFile("w+", delete=False, encoding="utf-8", suffix=".txt") as tmp:
+            tmp.write("custom_label_one\ncustom_label_two\n")
+            tmp_path = Path(tmp.name)
+
+        try:
+            labels1 = load_custom_labels(tmp_path)
+            labels2 = load_custom_labels(tmp_path)
+            self.assertEqual(labels1, labels2)
+            self.assertIn("custom_label_one", labels1)
+            self.assertIn("custom_label_two", labels1)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+
     def test_duration_zero_requires_official_authority(self):
         spotify_info = {"artist": "Madrigal", "title": "Seni Dert Etmeler", "duration": 0}
         cand_topic = {

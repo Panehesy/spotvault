@@ -38,6 +38,20 @@ class TestSpotVaultConfig(unittest.TestCase):
         self.assertEqual(config.audio_format, "mp3")
         self.assertEqual(config.bitrate, "320k")
 
+    def test_save_roundtrip(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "subfolder" / "config.json"
+            config = SpotVaultConfig(audio_format="m4a", bitrate="auto", storage_mode="pool_m3u8")
+            config.save(target)
+            self.assertTrue(target.exists())
+            loaded = SpotVaultConfig.load(target)
+            self.assertEqual(loaded.audio_format, "m4a")
+
+    def test_save_invalid_path_raises_ioerror(self):
+        config = SpotVaultConfig()
+        with self.assertRaises(IOError):
+            config.save("invalid_path_\0_null/config.json")
+
 
 if __name__ == "__main__":
     unittest.main()
