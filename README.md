@@ -29,7 +29,7 @@ The legacy v1.0.0 batch wrapper has been completely re-engineered into a self-co
 ## ⚡ What's New in v1.0.1
 
 * 🎯 **Smart Official Matcher:** Standard tools with `--only-verified-results` routinely skip tracks hosted on official regional distributor channels rather than YouTube's auto-generated "Topic" channels. SpotVault accurately identifies official releases and distributor uploads:
-  - **$\pm$3-Second Duration Tolerance:** Discards music videos with dialog, extended sketches, and sped-up/slowed edits.
+  - **±3-Second Duration Tolerance:** Discards music videos with dialog, extended sketches, and sped-up/slowed edits.
   - **Anti-Junk Keyword Filter:** Automatically excludes fan covers, live concert bootlegs, reverb edits, and amateur remixes.
   - **Extensible Custom Whitelist (`custom_labels.txt`):** Effortlessly add any regional, underground, or niche record label or channel name without modifying source code.
 * 📲 **1-Click Android ADB Sync:** Bundled portable Google Platform-Tools ADB (`core/adb/`) transfers your complete library directly to `/sdcard/Music/Muzikler` over USB:
@@ -51,7 +51,7 @@ The legacy v1.0.0 batch wrapper has been completely re-engineered into a self-co
 | **Login Requirement** | ❌ Account / Premium Required | ✅ No Login | ✅ No Login | **✅ Zero Login (Zero Account Risk)** |
 | **Regional & Independent Catalogs** | ⚠️ Unreliable | ❌ Skips unverified / downloads junk | ❌ Skips verified | **✅ Smart Matcher (TR & Global Whitelist)** |
 | **Custom Label Whitelisting** | ❌ None | ❌ None | ❌ None | **✅ custom_labels.txt Extensible** |
-| **Junk & Fan Edit Filtering** | ❌ Frequently wrong version | ⚠️ Limited `--only-verified` | ✅ Topic/VEVO only | **✅ Whitelist + $\pm$3s Tolerance + Blacklist** |
+| **Junk & Fan Edit Filtering** | ❌ Frequently wrong version | ⚠️ Limited `--only-verified` | ✅ Topic/VEVO only | **✅ Whitelist + ±3s Tolerance + Blacklist** |
 | **Direct Android Phone Transfer** | ❌ Manual MTP Drag & Drop | ❌ None | ⚠️ Hardcoded Script | **✅ Bundled ADB + Storage Pre-Check** |
 | **Automatic Music Player Indexing** | ❌ Device restart required | ❌ None | ⚠️ Manual Script | **✅ Automatic MediaScanner Broadcast** |
 | **User Interface** | ⚠️ Ad-heavy websites | ❌ Terminal only | ❌ Batch prompt only | **✅ Modern Dark Slate GUI + Headless CLI** |
@@ -110,8 +110,8 @@ python3 spotvault.py --file playlists.txt --sync-adb
 
 To enable direct cable synchronization to your Android device:
 
-1. On your phone, go to **Settings $\rightarrow$ About Phone $\rightarrow$ Build Number** and tap it 7 times until you see *"You are now a developer"*.
-2. Open **Settings $\rightarrow$ System / Additional Settings $\rightarrow$ Developer Options**.
+1. On your phone, go to **Settings → About Phone → Build Number** and tap it 7 times until you see *"You are now a developer"*.
+2. Open **Settings → System / Additional Settings → Developer Options**.
 3. Enable **USB Debugging**.
 4. Connect your phone to your computer via USB cable.
 5. In the prompt *"Allow USB debugging from this computer?"*, check *"Always allow from this computer"* and tap **Allow / OK**.
@@ -136,7 +136,7 @@ v1.0.0 sürümündeki saf spotDL batch wrapper yapısı, v1.0.1 ile birlikte ken
 ## ⚡ v1.0.1 ile Gelen Yenilikler
 
 * 🎯 **Akıllı Resmi Eşleştirici (Smart Official Matcher):** Standart araçların `--only-verified-results` filtresi nedeniyle atladığı, YouTube üzerinde otomatik sanatçı konu kanalı (Topic) yerine resmi yayıncı ve yetkili distribütör kanallarında barındırılan **TR yerel ve küresel bağımsız resmi katalogları** kaçırmaz.
-  - **$\pm$3 Saniye Süre Doğrulaması:** Klip içi konuşmaları, uzun introları ve hızlandırılmış (speed-up/slowed) kayıtları eler.
+  - **±3 Saniye Süre Doğrulaması:** Klip içi konuşmaları, uzun introları ve hızlandırılmış (speed-up/slowed) kayıtları eler.
   - **Anti-Çöp Filtresi:** Fan cover'ları, konser canlı kayıtları (live), reverb ve amatör remixleri otomatik reddeder.
   - **Genişletilebilir Özel Whitelist (`custom_labels.txt`):** Kullanıcıların diledikleri yerel, bölgesel veya niş plak şirketlerini/yayıncı kanallarını kod değiştirmeden sisteme tanıtabilmesi.
 * 📲 **Tek Tık Android ADB Senkronizasyonu:** Dahili Google Platform-Tools ADB (`core/adb/`) ile telefonunuzu kabloyla bağlayıp tek tıkla tüm kütüphaneyi `/sdcard/Music/Muzikler` dizinine aktarın.
@@ -217,8 +217,8 @@ python3 spotvault.py --file playlists.txt --sync-adb
 
 SpotVault'un telefonunuza doğrudan kabloyla müzik aktarabilmesi için:
 
-1. Telefonunuzda **Ayarlar $\rightarrow$ Telefon Hakkında $\rightarrow$ Derleme Numarası** seçeneğine 7 kez arka arkaya dokunun (*"Artık bir geliştiricisiniz"* mesajını görün).
-2. **Ayarlar $\rightarrow$ Ek Ayarlar / Sistem $\rightarrow$ Geliştirici Seçenekleri** menüsüne gidin.
+1. Telefonunuzda **Ayarlar → Telefon Hakkında → Derleme Numarası** seçeneğine 7 kez arka arkaya dokunun (*"Artık bir geliştiricisiniz"* mesajını görün).
+2. **Ayarlar → Ek Ayarlar / Sistem → Geliştirici Seçenekleri** menüsüne gidin.
 3. **USB Hata Ayıklama (USB Debugging)** özelliğini açın.
 4. Telefonu USB kablosuyla bilgisayara bağlayın.
 5. Telefon ekranında çıkacak *"Bu bilgisayara izin verilsin mi?"* bildiriminde *"Bu bilgisayara her zaman izin ver"* kutucuğunu işaretleyip **İzin Ver / Tamam** deyin.
