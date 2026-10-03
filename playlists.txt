@@ -1,0 +1,5 @@
+# SpotVault v1.0.1 — Çalma Listesi URL Havuzu
+# Her satıra bir Spotify çalma listesi veya albüm linki ekleyin.
+# Diyez (#) ile başlayan satırlar yorum olarak algılanır ve atlanır.
+
+https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M

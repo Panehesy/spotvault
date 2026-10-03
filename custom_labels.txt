@@ -1,0 +1,14 @@
+# SpotVault v1.0.1 - Özel Plak Şirketi & Yayıncı Whitelist Dosyası
+# 
+# Bu dosyaya eklediğiniz tüm kanal ve plak şirketi isimleri,
+# Akıllı Resmi Eşleştirici (Smart Official Matcher) tarafından resmi ve yetkili kaynak olarak tanınır.
+# 
+# Kurallar:
+# - Her satıra bir kanal / şirket ismi yazın.
+# - Büyük/küçük harf veya noktalama duyarlılığı yoktur (otomatik normalize edilir).
+# - '#' ile başlayan satırlar ve boş satırlar yok sayılır.
+#
+# Örnekler:
+# anatolian rock records
+# my local underground label
+# kadıköy acil

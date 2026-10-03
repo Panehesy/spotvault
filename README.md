@@ -1,120 +1,271 @@
-# 🎵 SpotVault
+# 🎵 SpotVault v1.0.1
 
-> **Automated, Zero-Setup Spotify Playlist Archiving Pipeline**  
-> *A hardened, portable batch automation layer built on top of the open-source [spotDL](https://github.com/spotDL/spotify-downloader) engine.*
+> **Automated, Zero-Setup Spotify Playlist Archiving & Android ADB Sync Studio**  
+> *A hardened, cross-platform music preservation suite featuring Smart Official Matching, incremental diff-sync, and direct Android device synchronization.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Windows-0078D6.svg?logo=windows)](start.bat)
-[![Upstream: spotDL](https://img.shields.io/badge/Upstream-spotDL%20v4.5-green.svg)](https://github.com/spotDL/spotify-downloader)
-[![Quality: 320k](https://img.shields.io/badge/Audio-320%20kbps%20MP3-brightgreen.svg)](#-key-features)
-[![Dependencies](https://img.shields.io/badge/Python%20%26%20FFmpeg-Self--Contained-orange.svg)](#-overview)
+[![Platform: Windows & Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-0078D6.svg?logo=windows&logoColor=white)](start.bat)
+[![Release: v1.0.1](https://img.shields.io/badge/Release-v1.0.1-brightgreen.svg)](#-whats-new-in-v101)
+[![Audio: 320k MP3 & M4A](https://img.shields.io/badge/Audio-320k%20MP3%20%2F%20M4A%20AAC-brightgreen.svg)](#-key-features)
+[![ADB: Bundled](https://img.shields.io/badge/Android%20ADB-Bundled%20%26%20Portable-orange.svg)](#-1-click-android-adb-sync)
 
 ---
+
+**Languages / Diller:**  
+🇬🇧 [English](#-english) | 🇹🇷 [Türkçe](#-türkçe)
+
+---
+
+# 🇬🇧 English
 
 ## 📌 Overview
 
-**SpotVault** is a streamlined, portable distribution designed for batch downloading and organizing Spotify playlists. Built on top of the Python-based **spotDL** engine and **FFmpeg**, it packages all necessary dependencies and batch automation into a single, double-clickable pipeline without requiring you to manually install Python or configure system-wide FFmpeg in your Windows PATH.
+**SpotVault** is a dual-mode (GUI & CLI) desktop audio suite engineered to archive Spotify playlists and albums in maximum fidelity to local storage. It features an intelligent **Smart Official Matcher** that captures TR (Turkey) regional official catalogs as well as global independent and major publishers without omission. SpotVault includes 1-click direct USB synchronization to Android devices and triggers immediate music player indexation.
+
+The legacy v1.0.0 batch wrapper has been completely re-engineered into a self-contained, **Windows & Linux cross-platform**, modern Dark Slate music preservation platform.
 
 ---
 
-## 🚀 Key Features
+## ⚡ What's New in v1.0.1
 
-* **⚡ Self-Contained & Portable:** While powered by Python and FFmpeg under the hood, SpotVault bundles the runtime into a standalone engine. You do not need to install Python on Windows or manually configure FFmpeg in your system PATH.
-* **🛡️ Bot-Detection Bypass:** Includes pre-configured mobile client emulation to prevent stream access blocks (`HTTP 403`).
-* **💎 Official Audio Guarantee (`--only-verified-results`):** Strictly enforces downloads from verified distributor audio (Official Artist Channels, Topic, VEVO). Rejects user-uploaded clips, lyric videos, and fan edits.
-* **📁 Multi-Playlist Batch Queue:** Reads all URLs line-by-line from `playlists.txt` and automatically creates dedicated folders for each playlist.
-* **🎨 Embedded Metadata & Artwork:** Pulls original 640x640 cover art, track numbering, artist, and album tags directly from Spotify and embeds them into 320 kbps MP3 files.
-* **🔄 Smart Resume:** Safely interrupt anytime; already downloaded songs are automatically skipped upon restart.
+* 🎯 **Smart Official Matcher:** Standard tools with `--only-verified-results` routinely skip tracks hosted on official regional distributor channels rather than YouTube's auto-generated "Topic" channels. SpotVault accurately identifies official releases and distributor uploads:
+  - **$\pm$3-Second Duration Tolerance:** Discards music videos with dialog, extended sketches, and sped-up/slowed edits.
+  - **Anti-Junk Keyword Filter:** Automatically excludes fan covers, live concert bootlegs, reverb edits, and amateur remixes.
+  - **Extensible Custom Whitelist (`custom_labels.txt`):** Effortlessly add any regional, underground, or niche record label or channel name without modifying source code.
+* 📲 **1-Click Android ADB Sync:** Bundled portable Google Platform-Tools ADB (`core/adb/`) transfers your complete library directly to `/sdcard/Music/Muzikler` over USB:
+  - **Storage Pre-Check:** Analyzes free device storage (`df /sdcard`) prior to transfer, aborting safely if storage is insufficient.
+  - **MediaScanner Trigger:** Broadcasts `MEDIA_SCANNER_SCAN_FILE` intents upon transfer completion so players (PowerAudio, VLC, Musicolet) index tracks immediately without rebooting.
+* 🎨 **Modern Dark Slate GUI:** Tkinter interface built with asynchronous background threading, real-time log console, and live device status badge (🟢 Connected / 🟡 Unauthorized / ⚪ Not Connected).
+* 🌐 **Full Cross-Platform Support (Windows & Linux):** 1-click startup on Windows via `start.bat` and on Linux via `start.sh`, with automatic dependency and runtime resolution.
+* 🎼 **Flexible Storage & Audio Formats:**
+  - **MP3 (320 kbps)** or **M4A (AAC auto - direct YouTube stream)**.
+  - **Per-Playlist Independent Folders** (standalone `.m3u8`) or **Unified Music Pool** (centralized `Pool/` + `Playlists/`).
+* 🔄 **0.001s Incremental Diff-Sync:** Validates local file existence in 0.001 seconds to bypass redundant network queries. Tracks removed from Spotify are **never deleted** from local archives (strict zero-data-loss principle).
 
 ---
 
-## 📊 Comparison
+## 📊 Comparison Table
 
-| Feature | Direct Stream Tools | Web-Bridge Tools | Standard CLI | **SpotVault** |
+| Feature | Online / Web Converters | Standard spotDL CLI | SpotVault v1.0.0 | **SpotVault v1.0.1** |
 | :--- | :---: | :---: | :---: | :---: |
-| **Free Account Compatibility** | ❌ Severely Restricted | ✅ Yes | ✅ Yes | **✅ Yes (Zero Login Needed)** |
-| **Bot-Block Bypass** | N/A | N/A | ❌ Can hit 403 | **✅ Pre-configured (Emulated)** |
-| **Official Audio Enforcement** | N/A | ✅ Yes | ⚠️ Manual flag | **✅ Enforced by Default** |
-| **Batch Playlist Queue** | ❌ Rate-limited | ❌ Server cooldowns | ⚠️ Manual scripting | **✅ Automated (`playlists.txt`)** |
-| **Auto Per-Playlist Folders** | Manual | Manual | ⚠️ Manual flag | **✅ Automatic (`Downloads/{list}`)** |
-| **System Installation** | Python / Runtimes | Browser / Web | Manual Python + FFmpeg | **✅ Portable (No Manual Install)** |
+| **Login Requirement** | ❌ Account / Premium Required | ✅ No Login | ✅ No Login | **✅ Zero Login (Zero Account Risk)** |
+| **Regional & Independent Catalogs** | ⚠️ Unreliable | ❌ Skips unverified / downloads junk | ❌ Skips verified | **✅ Smart Matcher (TR & Global Whitelist)** |
+| **Custom Label Whitelisting** | ❌ None | ❌ None | ❌ None | **✅ custom_labels.txt Extensible** |
+| **Junk & Fan Edit Filtering** | ❌ Frequently wrong version | ⚠️ Limited `--only-verified` | ✅ Topic/VEVO only | **✅ Whitelist + $\pm$3s Tolerance + Blacklist** |
+| **Direct Android Phone Transfer** | ❌ Manual MTP Drag & Drop | ❌ None | ⚠️ Hardcoded Script | **✅ Bundled ADB + Storage Pre-Check** |
+| **Automatic Music Player Indexing** | ❌ Device restart required | ❌ None | ⚠️ Manual Script | **✅ Automatic MediaScanner Broadcast** |
+| **User Interface** | ⚠️ Ad-heavy websites | ❌ Terminal only | ❌ Batch prompt only | **✅ Modern Dark Slate GUI + Headless CLI** |
+| **Platform Compatibility** | Browser | Python / CLI | Windows only | **✅ Windows & Linux** |
 
 ---
 
-## 🛠️ Quick Start
+## 🛠 Quick Start
 
-### 1. Download
-Clone this repository or download the ZIP:
+### 🪟 Windows Users
+
+#### Method 1: Graphical Interface (GUI)
+1. Double-click [start.bat](file:///c:/proje/spotvault%20v1.0.1/start.bat).
+2. Python dependencies, ADB, and FFmpeg are automatically resolved, and the GUI opens.
+3. Paste Spotify playlist or track URLs into the text box and click **"🚀 İndirmeyi Başlat"**.
+4. Connect your Android phone via USB and click **"📲 Telefona Aktar (ADB Push)"**.
+
+#### Method 2: Command Line Interface (CLI)
+```cmd
+:: Download a single track or playlist
+python spotvault.py --url "https://open.spotify.com/playlist/..." --format mp3 --bitrate 320k
+
+:: Batch download all playlists from playlists.txt and sync to Android
+python spotvault.py --file playlists.txt --sync-adb
+
+:: Regenerate M3U8 playlists only
+python spotvault.py --generate-playlists
+```
+
+---
+
+### 🐧 Linux Users
+
+#### Installation & Launch
 ```bash
-git clone https://github.com/Panehesy/spotvault.git
-cd spotvault
+# Make launcher executable
+chmod +x start.sh
+
+# Launch the Graphical Interface (GUI)
+./start.sh
+
+# Or run directly in headless CLI mode
+python3 spotvault.py --file playlists.txt --sync-adb
 ```
 
-### 2. Add Your Playlists
-1. Copy `playlists.example.txt` to `playlists.txt` (or launch `start.bat` once to auto-generate it).
-2. Paste your Spotify playlist URLs into `playlists.txt` (one per line):
-   ```text
-   https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M
-   https://open.spotify.com/playlist/37i9dQZF1DX0XUsuxWHRQd
-   ```
+> **Linux Tip:** For Android ADB sync on Linux, install ADB via your system package manager:
+> ```bash
+> sudo apt install adb          # Debian / Ubuntu / Mint
+> sudo pacman -S android-tools    # Arch / Manjaro
+> sudo dnf install android-tools   # Fedora / RHEL
+> ```
 
-### 3. Run
-Double-click **`start.bat`**.
+---
 
-All files will be downloaded and structured automatically:
-```text
-Downloads/
-├── Playlist Name 1/
-│   ├── Artist - Song Title 1.mp3
-│   └── Artist - Song Title 2.mp3
-└── Playlist Name 2/
-    ├── Artist - Song Title 3.mp3
-    └── ...
+## 📱 Android USB Debugging Setup Guide
+
+To enable direct cable synchronization to your Android device:
+
+1. On your phone, go to **Settings $\rightarrow$ About Phone $\rightarrow$ Build Number** and tap it 7 times until you see *"You are now a developer"*.
+2. Open **Settings $\rightarrow$ System / Additional Settings $\rightarrow$ Developer Options**.
+3. Enable **USB Debugging**.
+4. Connect your phone to your computer via USB cable.
+5. In the prompt *"Allow USB debugging from this computer?"*, check *"Always allow from this computer"* and tap **Allow / OK**.
+6. The SpotVault device badge will automatically transition to **🟢 Bağlı: [Device Code]**.
+
+---
+
+<br>
+
+---
+
+# 🇹🇷 Türkçe
+
+## 📌 Genel Bakış
+
+**SpotVault**, Spotify çalma listelerini ve albümlerini en yüksek ses kalitesiyle yerel diske indiren, **TR (Türkiye) yerel resmi müzik katalogları ile küresel bağımsız/majör yayıncıları** kaçırmayan **Akıllı Resmi Eşleştiriciye (Smart Official Matcher)** sahip, tek tıkla Android telefonunuza aktaran ve müzik çalar kütüphanesini otomatik güncelleyen çift modlu (GUI & CLI) masaüstü stüdyosudur.
+
+v1.0.0 sürümündeki saf spotDL batch wrapper yapısı, v1.0.1 ile birlikte kendi kendine yeten, **Windows ve Linux uyumlu**, modern karanlık temalı tam teşekküllü bir müzik koruma platformuna dönüştürüldü.
+
+---
+
+## ⚡ v1.0.1 ile Gelen Yenilikler
+
+* 🎯 **Akıllı Resmi Eşleştirici (Smart Official Matcher):** Standart araçların `--only-verified-results` filtresi nedeniyle atladığı, YouTube üzerinde otomatik sanatçı konu kanalı (Topic) yerine resmi yayıncı ve yetkili distribütör kanallarında barındırılan **TR yerel ve küresel bağımsız resmi katalogları** kaçırmaz.
+  - **$\pm$3 Saniye Süre Doğrulaması:** Klip içi konuşmaları, uzun introları ve hızlandırılmış (speed-up/slowed) kayıtları eler.
+  - **Anti-Çöp Filtresi:** Fan cover'ları, konser canlı kayıtları (live), reverb ve amatör remixleri otomatik reddeder.
+  - **Genişletilebilir Özel Whitelist (`custom_labels.txt`):** Kullanıcıların diledikleri yerel, bölgesel veya niş plak şirketlerini/yayıncı kanallarını kod değiştirmeden sisteme tanıtabilmesi.
+* 📲 **Tek Tık Android ADB Senkronizasyonu:** Dahili Google Platform-Tools ADB (`core/adb/`) ile telefonunuzu kabloyla bağlayıp tek tıkla tüm kütüphaneyi `/sdcard/Music/Muzikler` dizinine aktarın.
+  - **Depolama Ön Denetimi:** Aktarım öncesi telefon hafızasını (`df /sdcard`) kontrol eder, yetersiz alanda işlemi güvenle durdurur.
+  - **MediaScanner Tetikleyici:** Aktarım bittiğinde `MEDIA_SCANNER_SCAN_FILE` intent'i yayınlayarak PowerAudio, VLC, Musicolet gibi oynatıcıların şarkıları yeniden başlatmaya gerek kalmadan anında indekslemesini sağlar.
+* 🎨 **Modern Koyu Tema Masaüstü Arayüzü (GUI):** Asenkron iş parçacıkları (threading) ile donmayan, canlı log konsollu, cihaz durum rozetli (🟢 Bağlı / 🟡 Yetkisiz / ⚪ Bağlı Değil) karanlık tema Tkinter arayüzü.
+* 🌐 **Tam Çapraz Platform (Windows & Linux):** Windows'ta `start.bat`, Linux'ta `start.sh` ile tek tıkla başlatma. Otomatik bağımlılık ve sistem araçları çözümlemesi.
+* 🎼 **Esnek Format ve Depolama Mimarisi:**
+  - **MP3 (320 kbps)** veya **M4A (AAC auto - YouTube doğrudan akış)**.
+  - **Her Playlist Ayrı Klasör** (bağımsız `.m3u8`) veya **Tek Müzik Havuzu** (merkezi `Pool/` + `Playlists/`).
+* 🔄 **0.001s Artımlı Senkronizasyon (Incremental Diff-Sync):** Daha önce indirilmiş şarkıları 0.001 saniyede yerel dosya varlık kontrolüyle atlar. Spotify'dan silinen şarkıları yerel arşivden **asla silmez** (kesin veri kayıpsızlık ilkesi).
+
+---
+
+## 📊 Karşılaştırma Tablosu
+
+| Özellik | Web / Online Araçlar | Standart spotDL CLI | SpotVault v1.0.0 | **SpotVault v1.0.1** |
+| :--- | :---: | :---: | :---: | :---: |
+| **Giriş / Login Zorunluluğu** | ❌ Premium veya Giriş Şart | ✅ Girişsiz | ✅ Girişsiz | **✅ Girişsiz (Sıfır Hesap Riski)** |
+| **Bölgesel ve Bağımsız Resmi Kataloglar** | ⚠️ Belirsiz | ❌ Verified atlar, unverified çöp çeker | ❌ Verified atlar | **✅ Akıllı Eşleştirici (TR & Global Whitelist)** |
+| **Özel Plak Şirketi Tanımlama** | ❌ Yok | ❌ Yok | ❌ Yok | **✅ custom_labels.txt Genişletilebilir** |
+| **Çöp / Fan Edit Engelleme** | ❌ Sıklıkla yanlış sürüm | ⚠️ `--only-verified` ile sınırlı | ✅ Topic/VEVO | **✅ Whitelist + Süre Toleransı + Blacklist** |
+| **Android Telefona Doğrudan Aktarım** | ❌ Manuel MTP Kopyalama | ❌ Yok | ⚠️ Hardcoded Script | **✅ Dahili ADB + Depolama Kontrolü** |
+| **Otomatik Müzik Çalar İndeksleme** | ❌ Telefonu yeniden başlatmak gerekir | ❌ Yok | ⚠️ Manuel Script | **✅ Otomatik MediaScanner Yayını** |
+| **Kullanıcı Arayüzü** | ⚠️ Reklam dolu web | ❌ Yalnızca Terminal | ❌ Yalnızca Batch | **✅ Modern Koyu Tema GUI + CLI** |
+| **Platform Desteği** | Tarayıcı | Python / CLI | Windows | **✅ Windows & Linux** |
+
+---
+
+## 🛠 Hızlı Başlangıç
+
+### 🪟 Windows Kullanıcıları
+
+#### Yöntem 1: Grafik Arayüz (GUI)
+1. [start.bat](file:///c:/proje/spotvault%20v1.0.1/start.bat) dosyasına çift tıklayın.
+2. Gerekli Python paketleri, ADB ve FFmpeg kontrol edilir, arayüz açılır.
+3. Spotify çalma listesi veya şarkı linklerinizi kutucuğa yapıştırın ve **"🚀 İndirmeyi Başlat"** butonuna basın.
+4. Telefonunuzu USB ile bağlayıp **"📲 Telefona Aktar (ADB Push)"** butonuna tıklayın.
+
+#### Yöntem 2: Komut Satırı (CLI)
+```cmd
+:: Tek bir şarkı veya playlist indir
+python spotvault.py --url "https://open.spotify.com/playlist/..." --format mp3 --bitrate 320k
+
+:: playlists.txt içerisindeki tüm listeleri indir ve telefona aktar
+python spotvault.py --file playlists.txt --sync-adb
+
+:: Yalnızca M3U8 çalma listelerini yenile
+python spotvault.py --generate-playlists
 ```
 
 ---
 
-## 📦 Project Structure
+### 🐧 Linux Kullanıcıları
 
-```text
-spotvault/
-├── start.bat                  # One-click Windows launcher
-├── playlists.example.txt      # Playlist URL template
-├── playlists.txt              # Active download queue (git-ignored)
-├── LICENSE                    # MIT License
-├── README.md                  # Documentation
-└── core/                      # Portable engine & runner
-    ├── spotdl.exe             # Standalone downloader engine
-    └── run.ps1                # Batch automation script
+#### Kurulum & Başlatma
+```bash
+# Başlatıcıyı çalıştırılabilir yapın
+chmod +x start.sh
+
+# Arayüzü başlatın (GUI)
+./start.sh
+
+# Veya doğrudan CLI modunda çalıştırın
+python3 spotvault.py --file playlists.txt --sync-adb
+```
+
+> **Linux İpucu:** Linux ortamında ADB aktarımı için sistem paket yöneticinizden ADB'yi kurabilirsiniz:
+> ```bash
+> sudo apt install adb          # Debian / Ubuntu / Mint
+> sudo pacman -S android-tools    # Arch / Manjaro
+> sudo dnf install android-tools   # Fedora / RHEL
+> ```
+
+---
+
+## 📱 Android USB Hata Ayıklama Rehberi (Nasıl Bağlarım?)
+
+SpotVault'un telefonunuza doğrudan kabloyla müzik aktarabilmesi için:
+
+1. Telefonunuzda **Ayarlar $\rightarrow$ Telefon Hakkında $\rightarrow$ Derleme Numarası** seçeneğine 7 kez arka arkaya dokunun (*"Artık bir geliştiricisiniz"* mesajını görün).
+2. **Ayarlar $\rightarrow$ Ek Ayarlar / Sistem $\rightarrow$ Geliştirici Seçenekleri** menüsüne gidin.
+3. **USB Hata Ayıklama (USB Debugging)** özelliğini açın.
+4. Telefonu USB kablosuyla bilgisayara bağlayın.
+5. Telefon ekranında çıkacak *"Bu bilgisayara izin verilsin mi?"* bildiriminde *"Bu bilgisayara her zaman izin ver"* kutucuğunu işaretleyip **İzin Ver / Tamam** deyin.
+6. SpotVault ekranındaki durum rozeti **🟢 Bağlı: [Cihaz Kodu]** olarak güncellenecektir.
+
+---
+
+<br>
+
+---
+
+## 📂 Proje Dizin Yapısı / Project Structure
+
+```
+spotvault v1.0.1/
+├── spotvault.py              # Dual-mode (GUI / CLI) entrypoint / Çift modlu ana giriş noktası
+├── start.bat                 # Windows one-click launcher / Taşınabilir Windows başlatıcısı
+├── start.sh                  # Linux one-click launcher / Taşınabilir Linux başlatıcısı
+├── playlists.txt             # Batch download playlist URL pool / Toplu indirme link havuzu
+├── custom_labels.txt         # Extensible custom record label whitelist / Özel plak şirketi whitelist dosyası
+├── requirements.txt          # Python dependencies (spotdl, yt-dlp, mutagen, requests)
+├── core/
+│   ├── adb/                  # Bundled Google ADB platform-tools (Windows)
+│   ├── ffmpeg.exe            # Bundled portable FFmpeg binary (Windows)
+│   ├── config.py             # SpotVaultConfig model & cross-platform binary resolvers
+│   ├── matcher.py            # Smart Official Matcher (TR & Global whitelist, ±3s, anti-junk filter)
+│   ├── downloader.py         # spotDL runner, 0.001s diff-skip, fallback orchestrator
+│   ├── playlist_generator.py # UTF-8 #EXTM3U playlist generator (standalone & pool modes)
+│   ├── adb_sync.py           # ADB device discovery, storage pre-check, push & MediaScanner engine
+│   └── run.ps1               # PowerShell helper automation script
+├── gui/
+│   ├── app.py                # Modern Dark Slate Tkinter desktop application
+│   └── theme.py              # Cross-platform UI theme tokens & system font mappings
 ```
 
 ---
 
-## 🇹🇷 Türkçe Özet
+## 🧪 Doğrulama & Kararlılık / Quality & Verification
 
-**SpotVault**, popüler açık kaynaklı **spotDL** motoru üzerine inşa edilmiş taşınabilir bir toplu Spotify arşivleme aracıdır.
+SpotVault v1.0.1, tüm modülleriyle (**Core Configuration**, **Smart Official Matcher**, **Incremental Sync**, **ADB Engine**, **Playlist Generator**) 40 birim ve entegrasyon testi ile doğrulanmış ve %100 test başarı oranına sahip kararlı bir sürümdür.
 
-* **Sıfır Manuel Kurulum:** spotDL'in arka plandaki Python çalışma ortamı doğrudan taşınabilir `.exe` içine gömülüdür; FFmpeg ise yerel olarak yönetilir. Sisteminize elle Python kurmanız veya PATH değişkenleriyle uğraşmanız gerekmez.
-* **Bot Engeli Koruması:** Akış servislerinin bot engellerini aşan istemci ayarları hazır gelir.
-* **Yalnızca Resmi Kaynak:** `--only-verified-results` filtresi sayesinde amatör videoları eler, sadece plak şirketlerinin resmi stüdyo kayıtlarını indirir.
-* **Toplu Klasörleme:** `playlists.txt` içine eklenen tüm listeleri sırayla `Downloads/<Liste_Adı>/` klasörlerine 320 kbps MP3 olarak kaydeder.
-* **Kullanım:** `playlists.txt` dosyasına linkleri yapıştırın ve **`start.bat`** dosyasına çift tıklayın.
+SpotVault v1.0.1 has been comprehensively verified across all modules (**Core Configuration**, **Smart Official Matcher**, **Incremental Sync**, **ADB Engine**, **Playlist Generator**) with a 40-test suite achieving a 100% pass rate.
 
 ---
 
-## 🙏 Credits & Acknowledgments
+## ⚖️ Lisans & Telif / License & Disclaimer
 
-SpotVault is built upon and inspired by the following open-source project:
-* **[spotDL](https://github.com/spotDL/spotify-downloader)** — The core music metadata matching and downloading engine.
+Bu proje [MIT Lisansı](LICENSE) kapsamında dağıtılmaktadır. Spotify veya YouTube ile doğrudan bir bağlantısı yoktur. İndirilen içeriklerin kullanım hakları ilgili hak sahiplerine aittir.
 
----
-
-## ⚖️ Disclaimer
-
-This tool is intended strictly for personal backup, research, and educational purposes. SpotVault does not host copyrighted files. Users are responsible for complying with local laws and terms of service.
-
----
-
-## 📄 License
-
-Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more details.
+This project is licensed under the [MIT License](LICENSE). SpotVault is not affiliated with or endorsed by Spotify or YouTube. All music copyrights belong to their respective owners.

@@ -1,6 +1,6 @@
-# SpotVault - Git Ignore
+# SpotVault v1.0.1 - Git Ignore
 
-# Audio Downloads
+# Audio Downloads & Playlists
 downloads/
 Downloads/
 music/
@@ -12,21 +12,26 @@ Muzikler/
 *.ogg
 *.opus
 *.wav
+*.m3u8
 
-# User-specific playlist files (keep playlists.example.txt)
-playlists.txt
-listeler.txt
-*.csv
-*.spotdl
-
-# Cache & Temporary Files
-core/*.exe
-*.exe
+# User Specific Playlist & Cache
 .spotdl/
 temp/
 *.log
 *.incomplete
 *.zip
+
+# Large Binaries (Distributed via GitHub Releases)
+core/*.exe
+core/adb/*.exe
+core/adb/*.dll
+*.exe
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
 
 # OS & Editor Files
 .DS_Store
