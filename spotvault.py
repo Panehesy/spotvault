@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import argparse
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Callable, List, Optional, Union
 
 from core.adb_sync import AdbSyncEngine
 from core.config import SpotVaultConfig
