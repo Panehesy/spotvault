@@ -210,6 +210,9 @@ chmod +x start.sh
 
 ```
 spotvault v1.0.1/
+├── .github/
+│   └── workflows/
+│       └── tests.yml         # Automated GitHub Actions CI workflow
 ├── spotvault.py              # Dual-mode (GUI / CLI) entrypoint / Çift modlu ana giriş noktası
 ├── start.bat                 # Windows one-click launcher / Taşınabilir Windows başlatıcısı
 ├── start.sh                  # Linux one-click launcher / Taşınabilir Linux başlatıcısı
