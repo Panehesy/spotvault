@@ -17,6 +17,8 @@ Muzikler/
 # User Specific Playlist & Cache
 .spotdl/
 temp/
+playlists.txt
+spotvault_config.json
 *.log
 *.incomplete
 *.zip
