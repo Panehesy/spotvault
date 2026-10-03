@@ -180,8 +180,10 @@ class AdbSyncEngine:
             )
 
         self.log(f"[ADB] Creating remote directories on device: {remote_music_dir}")
-        self.run_adb_command(["shell", "mkdir", "-p", remote_music_dir])
-        self.run_adb_command(["shell", "mkdir", "-p", remote_playlist_dir])
+        mk1 = self.run_adb_command(["shell", "mkdir", "-p", remote_music_dir])
+        mk2 = self.run_adb_command(["shell", "mkdir", "-p", remote_playlist_dir])
+        if mk1.returncode != 0:
+            raise RuntimeError(f"Failed to create remote directory '{remote_music_dir}': {mk1.stderr.strip()}")
 
         self.log(f"[ADB] Starting incremental push from {local_dir} to {remote_music_dir}...")
         push_cmd = [self.adb_bin, "push", "--sync", str(local_dir) + "/.", remote_music_dir]
@@ -207,24 +209,40 @@ class AdbSyncEngine:
             raise RuntimeError(f"ADB push failed with returncode {process.returncode}")
 
         # Synchronize M3U8 playlists directly to /sdcard/Playlists
+        playlists_pushed = True
         playlists_source = local_dir / "Playlists"
         if playlists_source.exists() and any(playlists_source.glob("*.m3u8")):
             self.log(f"[ADB] Syncing playlists to {remote_playlist_dir}...")
-            self.run_adb_command(["push", "--sync", str(playlists_source) + "/.", remote_playlist_dir])
-            self.trigger_media_scanner(remote_playlist_dir)
+            res = self.run_adb_command(["push", "--sync", str(playlists_source) + "/.", remote_playlist_dir])
+            if res.returncode != 0:
+                self.log(f"[ADB WARNING] Playlist push returned non-zero ({res.returncode}): {res.stderr.strip()}")
+                playlists_pushed = False
+            else:
+                self.trigger_media_scanner(remote_playlist_dir)
         else:
             m3u8_files = [p for p in local_dir.rglob("*.m3u8") if p.is_file()]
             if m3u8_files:
                 self.log(f"[ADB] Syncing {len(m3u8_files)} standalone playlist file(s) to {remote_playlist_dir}...")
+                failed_pl = 0
                 for pl in m3u8_files:
-                    self.run_adb_command(["push", "--sync", str(pl), f"{remote_playlist_dir}/{pl.name}"])
-                self.trigger_media_scanner(remote_playlist_dir)
+                    res = self.run_adb_command(["push", "--sync", str(pl), f"{remote_playlist_dir}/{pl.name}"])
+                    if res.returncode != 0:
+                        failed_pl += 1
+                if failed_pl > 0:
+                    self.log(f"[ADB WARNING] {failed_pl} playlist(s) encountered transfer errors.")
+                    playlists_pushed = False
+                else:
+                    self.trigger_media_scanner(remote_playlist_dir)
 
         self.trigger_media_scanner(remote_music_dir)
-        self.log("[ADB] Sync completed successfully.")
+        if playlists_pushed:
+            self.log("[ADB] Sync completed successfully.")
+        else:
+            self.log("[ADB WARNING] Audio sync completed, but some playlist files failed to transfer.")
 
         return {
             "success": True,
+            "playlists_synced": playlists_pushed,
             "transferred_bytes": local_bytes,
             "device": status["serial"]
         }

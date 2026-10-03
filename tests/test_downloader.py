@@ -2,10 +2,26 @@ import unittest
 import tempfile
 from pathlib import Path
 from core.config import SpotVaultConfig
-from core.downloader import sanitize_filename, is_track_already_downloaded, build_spotdl_command
+from core.downloader import sanitize_filename, is_track_already_downloaded, build_spotdl_command, reconcile_pool_tracks
 
 
 class TestDownloaderHelpers(unittest.TestCase):
+    def test_reconcile_pool_tracks_includes_cached_files(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pool_dir = Path(tmpdir) / "Pool"
+            pool_dir.mkdir()
+            # 2 pre-existing tracks in Pool
+            (pool_dir / "Daft Punk - One More Time.mp3").write_bytes(b"data1")
+            (pool_dir / "Maft - Harder Better.mp3").write_bytes(b"data2")
+
+            queries = ["Daft Punk - One More Time", "Maft - Harder Better", "New Artist - Missing Track"]
+            matched = reconcile_pool_tracks(pool_dir, queries, audio_format="mp3")
+
+            self.assertIn("Daft Punk - One More Time.mp3", matched)
+            self.assertIn("Maft - Harder Better.mp3", matched)
+            self.assertNotIn("New Artist - Missing Track.mp3", matched)
+            self.assertEqual(len(matched), 2)
+
     def test_sanitize_filename_strips_invalid_chars(self):
         self.assertEqual(sanitize_filename("AC/DC: Back in Black?"), "AC_DC_ Back in Black_")
         self.assertEqual(sanitize_filename("Track <1> *test*"), "Track _1_ _test_")

@@ -63,6 +63,23 @@ class TestSmartOfficialMatcher(unittest.TestCase):
         self.assertTrue(is_channel_whitelisted("Sony Music Turkey"))
         self.assertFalse(is_channel_whitelisted("RandomFan99"))
 
+    def test_duration_zero_requires_official_authority(self):
+        spotify_info = {"artist": "Madrigal", "title": "Seni Dert Etmeler", "duration": 0}
+        cand_topic = {
+            "title": "Seni Dert Etmeler",
+            "channel": "Madrigal - Topic",
+            "duration": 0
+        }
+        cand_fan = {
+            "title": "Seni Dert Etmeler",
+            "channel": "RandomBootlegUploader",
+            "duration": 0
+        }
+        score_official = score_candidate(spotify_info, cand_topic)
+        score_fan = score_candidate(spotify_info, cand_fan)
+        self.assertGreater(score_official, 70.0)
+        self.assertLess(score_fan, 70.0)
+
 
 if __name__ == "__main__":
     unittest.main()

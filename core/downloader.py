@@ -29,7 +29,7 @@ def is_track_already_downloaded(
     storage_mode: str = "standalone"
 ) -> bool:
     """
-    Performs a 0.001-second local filesystem existence check to avoid redundant network queries.
+    Performs a local filesystem existence check to avoid redundant network queries.
     """
     clean_artist = sanitize_filename(artist)
     clean_title = sanitize_filename(title)
@@ -43,6 +43,55 @@ def is_track_already_downloaded(
         target_path = base_dir / clean_playlist / filename
 
     return target_path.exists() and target_path.stat().st_size > 0
+
+
+def reconcile_pool_tracks(
+    pool_dir: Path,
+    queries: List[str],
+    audio_format: str = "mp3"
+) -> List[str]:
+    """
+    Given a list of track queries (e.g. 'Artist - Title') and a Pool directory,
+    identifies all existing files in Pool that match those queries, ensuring cached
+    and cross-playlist shared tracks are never dropped from generated playlists.
+    """
+    if not pool_dir.exists():
+        return []
+
+    pool_files = {f.name: f for f in pool_dir.glob("*.*") if f.is_file()}
+    matched: List[str] = []
+
+    for q in queries:
+        parts = q.split(" - ", 1)
+        artist = sanitize_filename(parts[0].strip() if len(parts) > 1 else "")
+        title = sanitize_filename(parts[1].strip() if len(parts) > 1 else q.strip())
+
+        # 1. Exact expected filename match
+        exact_name = f"{artist} - {title}.{audio_format}"
+        if exact_name in pool_files:
+            matched.append(exact_name)
+            continue
+
+        # 2. Case-insensitive or extension-agnostic match
+        target_stem = f"{artist} - {title}".lower()
+        found = False
+        for fname, fpath in pool_files.items():
+            if fpath.stem.lower() == target_stem:
+                matched.append(fname)
+                found = True
+                break
+        if found:
+            continue
+
+        # 3. Substring matching if both artist and title are contained
+        if artist and title:
+            for fname in pool_files.keys():
+                fl = fname.lower()
+                if artist.lower() in fl and title.lower() in fl:
+                    matched.append(fname)
+                    break
+
+    return list(dict.fromkeys(matched))
 
 
 def build_spotdl_command(
@@ -150,6 +199,7 @@ class SpotVaultDownloader:
         self.log(f"[SPOTDL] Starting download for: {playlist_url}")
 
         failed_tracks: List[Dict[str, Any]] = []
+        seen_queries: List[str] = []
         current_query: Optional[str] = playlist_url if "/track/" in playlist_url else None
 
         pool_dir = Path(self.config.output_dir) / "Pool"
@@ -182,11 +232,19 @@ class SpotVaultDownloader:
 
                     if line_clean.startswith("Processing query:"):
                         current_query = line_clean.replace("Processing query:", "").strip()
+                        if current_query and current_query not in seen_queries:
+                            seen_queries.append(current_query)
 
                     if "Skipping" in line_clean or "already exists" in line_clean:
                         stats["skipped"] += 1
+                        m_quote = re.search(r'["\']([^"\']+)["\']', line_clean)
+                        if m_quote and m_quote.group(1) not in seen_queries:
+                            seen_queries.append(m_quote.group(1))
                     elif "Downloaded" in line_clean:
                         stats["downloaded"] += 1
+                        m_quote = re.search(r'["\']([^"\']+)["\']', line_clean)
+                        if m_quote and m_quote.group(1) not in seen_queries:
+                            seen_queries.append(m_quote.group(1))
                     elif (
                         "No verified result found" in line_clean
                         or "LookupError" in line_clean
@@ -214,9 +272,18 @@ class SpotVaultDownloader:
         if self.config.storage_mode == "pool_m3u8" and pool_dir.exists():
             current_pool_files = set(f.name for f in pool_dir.glob("*.*"))
             new_or_existing = current_pool_files - initial_pool_files
+            reconciled = reconcile_pool_tracks(
+                pool_dir=pool_dir,
+                queries=seen_queries,
+                audio_format=self.config.audio_format
+            )
+            mapping_list = self.pool_playlist_mapping.setdefault(clean_folder, [])
+            for fname in reconciled:
+                if fname not in mapping_list:
+                    mapping_list.append(fname)
             for fname in new_or_existing:
-                if fname not in self.pool_playlist_mapping.setdefault(clean_folder, []):
-                    self.pool_playlist_mapping[clean_folder].append(fname)
+                if fname not in mapping_list:
+                    mapping_list.append(fname)
 
         if failed_tracks and not self.cancel_requested:
             self.log(f"[MATCHER] {len(failed_tracks)} tracks missed by spotDL. Activating Smart Official Matcher...")

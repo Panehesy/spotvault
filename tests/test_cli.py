@@ -33,6 +33,23 @@ class TestCliArguments(unittest.TestCase):
         self.assertEqual(parsed.storage_mode, "pool_m3u8")
         self.assertEqual(parsed.output_dir, "./custom_music")
 
+    def test_extract_cli_urls_merges_url_and_file(self):
+        from spotvault import extract_cli_urls
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            f = Path(tmpdir) / "playlists.txt"
+            f.write_text("https://open.spotify.com/playlist/from_file # comment\ninvalid_url_junk\nhttps://open.spotify.com/playlist/from_file\n", encoding="utf-8")
+
+            urls = extract_cli_urls(
+                single_url="https://open.spotify.com/track/single_url",
+                file_path=f
+            )
+            self.assertEqual(len(urls), 2)
+            self.assertEqual(urls[0], "https://open.spotify.com/track/single_url")
+            self.assertEqual(urls[1], "https://open.spotify.com/playlist/from_file")
+
 
 if __name__ == "__main__":
     unittest.main()

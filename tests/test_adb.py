@@ -34,6 +34,13 @@ emulator-5554\toffline
         avail = parse_df_available_bytes(sample)
         self.assertIsNone(avail)
 
+    def test_adb_sync_engine_initialization(self):
+        from core.adb_sync import AdbSyncEngine
+        engine = AdbSyncEngine()
+        self.assertIsNotNone(engine.adb_bin)
+        status = engine.get_device_status()
+        self.assertIn("connected", status)
+
 
 if __name__ == "__main__":
     unittest.main()

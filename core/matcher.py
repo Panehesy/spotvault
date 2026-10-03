@@ -219,7 +219,17 @@ def score_candidate(
     if spotify_duration > 0 and yt_duration > 0:
         score = 100.0 - (abs(spotify_duration - yt_duration) * 10.0)
     else:
-        score = 75.0  # Base confidence when duration metadata is unavailable
+        # Duration is unknown/unverified. Enforce strict authority gate:
+        # Candidate MUST be a verified Topic channel, whitelisted publisher, or the artist's own channel.
+        is_whitelisted = is_channel_whitelisted(channel, custom_labels=custom_labels)
+        artist = spotify_info.get("artist", "").lower()
+        is_artist_channel = bool(artist and artist in channel.lower())
+
+        if is_whitelisted or is_artist_channel:
+            score = 75.0
+        else:
+            # Unverified fan/bootleg upload without duration verification cannot pass
+            return 30.0
 
     if is_channel_whitelisted(channel, custom_labels=custom_labels):
         score += 50.0
@@ -302,7 +312,7 @@ def find_best_official_candidate(
         if highest_score >= 120.0:
             break
 
-    return best_candidate
+    return best_candidate if highest_score >= 70.0 else None
 
 
 def fetch_spotify_track_metadata(spotify_url: str) -> Optional[Dict[str, Any]]:

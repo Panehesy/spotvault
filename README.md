@@ -5,8 +5,9 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Windows & Linux](https://img.shields.io/badge/Platform-Windows%20%7C%20Linux-0078D6.svg?logo=windows&logoColor=white)](start.bat)
+[![CI](https://github.com/panehesy/spotvault/actions/workflows/tests.yml/badge.svg)](https://github.com/panehesy/spotvault/actions/workflows/tests.yml)
 [![Release: v1.0.1](https://img.shields.io/badge/Release-v1.0.1-brightgreen.svg)](#-whats-new-in-v101)
-[![Audio: 320k MP3 & M4A](https://img.shields.io/badge/Audio-320k%20MP3%20%2F%20M4A%20AAC-brightgreen.svg)](#-key-features)
+[![Audio: 320k MP3 & M4A](https://img.shields.io/badge/Audio-320k%20MP3%20%2F%20M4A%20AAC-brightgreen.svg)](#-audio-pipeline--fidelity-transparency)
 [![ADB: Bundled](https://img.shields.io/badge/Android%20ADB-Bundled%20%26%20Portable-orange.svg)](#-1-click-android-adb-sync)
 
 ---
@@ -20,7 +21,7 @@
 
 ## 📌 Overview
 
-**SpotVault** is a dual-mode (GUI & CLI) desktop audio suite engineered to archive Spotify playlists and albums in maximum fidelity to local storage. It features an intelligent **Smart Official Matcher** that captures TR (Turkey) regional official catalogs as well as global independent and major publishers without omission. SpotVault includes 1-click direct USB synchronization to Android devices and triggers immediate music player indexation.
+**SpotVault** is a dual-mode (GUI & CLI) desktop audio suite engineered to archive Spotify playlists and albums with high-fidelity stream preservation (M4A AAC / 320k MP3) to local storage. It features an intelligent **Smart Official Matcher** that captures TR (Turkey) regional official catalogs as well as global independent and major publishers without omission. SpotVault includes 1-click direct USB synchronization to Android devices and triggers immediate music player indexation.
 
 The legacy v1.0.0 batch wrapper has been completely re-engineered into a self-contained, **Windows & Linux cross-platform**, modern Dark Slate music preservation platform.
 
@@ -107,11 +108,11 @@ chmod +x start.sh
 python3 spotvault.py --file playlists.txt --sync-adb
 ```
 
-> **Linux Tip:** For Android ADB sync on Linux, install ADB via your system package manager:
+> **Linux Tip:** On Linux, ensure `ffmpeg` and `adb` are installed via your package manager:
 > ```bash
-> sudo apt install adb          # Debian / Ubuntu / Mint
-> sudo pacman -S android-tools    # Arch / Manjaro
-> sudo dnf install android-tools   # Fedora / RHEL
+> sudo apt install ffmpeg adb python3-tk    # Debian / Ubuntu / Mint
+> sudo pacman -S ffmpeg android-tools       # Arch / Manjaro
+> sudo dnf install ffmpeg android-tools     # Fedora / RHEL
 > ```
 
 ---
@@ -137,7 +138,7 @@ To enable direct cable synchronization to your Android device:
 
 ## 📌 Genel Bakış
 
-**SpotVault**, Spotify çalma listelerini ve albümlerini yüksek ses kalitesiyle yerel diske indiren, **TR (Türkiye) yerel resmi müzik katalogları ile küresel bağımsız/majör yayıncıları** kaçırmayan **Akıllı Resmi Eşleştiriciye (Smart Official Matcher)** sahip, tek tıkla Android telefonunuza aktaran ve müzik çalar kütüphanesini otomatik güncelleyen çift modlu (GUI & CLI) masaüstü stüdyosudur.
+**SpotVault**, Spotify çalma listelerini ve albümlerini yüksek ses kalitesi ve akış korumasıyla (M4A AAC auto / 320k MP3) yerel diske indiren, **TR (Türkiye) yerel resmi müzik katalogları ile küresel bağımsız/majör yayıncıları** kaçırmayan **Akıllı Resmi Eşleştiriciye (Smart Official Matcher)** sahip, tek tıkla Android telefonunuza aktaran ve müzik çalar kütüphanesini otomatik güncelleyen çift modlu (GUI & CLI) masaüstü stüdyosudur.
 
 v1.0.0 sürümündeki batch wrapper yapısı, v1.0.1 ile birlikte kendi kendine yeten, **Windows ve Linux uyumlu**, modern karanlık temalı tam teşekküllü bir müzik koruma platformuna dönüştürüldü.
 
@@ -195,6 +196,10 @@ SpotVault, ses kalitesi ve formatları konusunda teknik gerçekliğe tam bağlı
 
 ### 🐧 Linux Kullanıcıları
 ```bash
+# Sistem paketlerini kurun
+sudo apt install ffmpeg adb python3-tk
+
+# Başlatıcıyı çalıştırın
 chmod +x start.sh
 ./start.sh
 ```
