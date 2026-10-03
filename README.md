@@ -40,7 +40,7 @@ The legacy v1.0.0 batch wrapper has been completely re-engineered into a self-co
 * 🎼 **Flexible Storage & Audio Formats:**
   - **MP3 (320 kbps)** or **M4A (AAC auto - direct YouTube stream)**.
   - **Per-Playlist Independent Folders** (standalone `.m3u8`) or **Unified Music Pool** (centralized `Pool/` + `Playlists/`).
-* 🔄 **0.001s Incremental Diff-Sync:** Validates local file existence in 0.001 seconds to bypass redundant network queries. Tracks removed from Spotify are **never deleted** from local archives (strict zero-data-loss principle).
+* 🔄 **Local Filesystem Incremental Diff-Sync:** Validates local file existence via zero-overhead filesystem checks to bypass redundant network queries. Tracks removed from Spotify are **never deleted** from local archives (strict zero-data-loss principle).
 
 ---
 
@@ -74,7 +74,7 @@ SpotVault is built with complete engineering honesty regarding streaming audio s
 ### 🪟 Windows Users
 
 #### Method 1: Graphical Interface (GUI)
-1. Double-click [start.bat](file:///c:/proje/spotvault%20v1.0.1/start.bat).
+1. Double-click [start.bat](start.bat).
 2. Python dependencies, ADB, and FFmpeg are automatically resolved, and the GUI opens.
 3. Paste Spotify playlist or track URLs into the text box and click **"🚀 Start Download / İndirmeyi Başlat"**.
 4. Connect your Android phone via USB and click **"📲 Sync to Phone / Telefona Aktar (ADB Push)"**.
@@ -189,7 +189,7 @@ SpotVault, ses kalitesi ve formatları konusunda teknik gerçekliğe tam bağlı
 ## 🛠 Hızlı Başlangıç (TR)
 
 ### 🪟 Windows Kullanıcıları
-1. [start.bat](file:///c:/proje/spotvault%20v1.0.1/start.bat) dosyasına çift tıklayın.
+1. [start.bat](start.bat) dosyasına çift tıklayın.
 2. Spotify linklerinizi yapıştırıp **"🚀 İndirmeyi Başlat"** butonuna basın.
 3. Telefonunuzu bağlayıp **"📲 Telefona Aktar (ADB Push)"** ile kütüphaneyi aktarın.
 

@@ -206,6 +206,20 @@ class AdbSyncEngine:
         if process.returncode != 0:
             raise RuntimeError(f"ADB push failed with returncode {process.returncode}")
 
+        # Synchronize M3U8 playlists directly to /sdcard/Playlists
+        playlists_source = local_dir / "Playlists"
+        if playlists_source.exists() and any(playlists_source.glob("*.m3u8")):
+            self.log(f"[ADB] Syncing playlists to {remote_playlist_dir}...")
+            self.run_adb_command(["push", "--sync", str(playlists_source) + "/.", remote_playlist_dir])
+            self.trigger_media_scanner(remote_playlist_dir)
+        else:
+            m3u8_files = [p for p in local_dir.rglob("*.m3u8") if p.is_file()]
+            if m3u8_files:
+                self.log(f"[ADB] Syncing {len(m3u8_files)} standalone playlist file(s) to {remote_playlist_dir}...")
+                for pl in m3u8_files:
+                    self.run_adb_command(["push", "--sync", str(pl), f"{remote_playlist_dir}/{pl.name}"])
+                self.trigger_media_scanner(remote_playlist_dir)
+
         self.trigger_media_scanner(remote_music_dir)
         self.log("[ADB] Sync completed successfully.")
 
