@@ -1,4 +1,4 @@
-# SpotVault v1.0.1 - Özel Plak Şirketi & Yayıncı Whitelist Dosyası
+# SpotVault - Özel Plak Şirketi & Yayıncı Whitelist Dosyası
 # 
 # Bu dosyaya eklediğiniz tüm kanal ve plak şirketi isimleri,
 # Akıllı Resmi Eşleştirici (Smart Official Matcher) tarafından resmi ve yetkili kaynak olarak tanınır.

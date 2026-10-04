@@ -1,3 +1,10 @@
+"""
+Tkinter Desktop GUI for SpotVault v1.0.0.
+Provides a modern dark-themed interface for configuring download quality,
+managing M3U8 playlists, monitoring real-time console progress, and syncing to Android devices via ADB.
+Includes complete Turkish (TR) and English (EN) internationalization with live switching.
+"""
+
 import os
 import queue
 import sys
@@ -10,6 +17,7 @@ from typing import Any, Dict, List, Optional
 from core.adb_sync import AdbSyncEngine
 from core.config import SpotVaultConfig
 from core.downloader import SpotVaultDownloader
+from core.i18n import get_text
 from core.playlist_generator import generate_all_playlists
 from gui.theme import (
     ACCENT_PRIMARY,
@@ -35,7 +43,7 @@ from gui.theme import (
 
 class SpotVaultApp(tk.Tk):
     """
-    Main desktop window and UI controller for SpotVault v1.0.1.
+    Main desktop window and UI controller for SpotVault v1.0.0.
     """
 
     def __init__(self, config_path: Optional[Path] = None) -> None:
@@ -44,24 +52,31 @@ class SpotVaultApp(tk.Tk):
         """
         super().__init__()
 
-        self.title("SpotVault v1.0.1 — Offline Music & Android Sync")
+        self.config_path = config_path or (Path(__file__).resolve().parent.parent / "spotvault_config.json")
+        self.config = SpotVaultConfig.load(self.config_path)
+
+        self.title(self.t("app_title"))
         self.geometry("1080x720")
         self.minsize(960, 640)
         self.configure(bg=BG_MAIN)
-
-        self.config_path = config_path or (Path(__file__).resolve().parent.parent / "spotvault_config.json")
-        self.config = SpotVaultConfig.load(self.config_path)
 
         self.adb_engine = AdbSyncEngine(log_callback=self.log_message)
         self.log_queue: queue.Queue = queue.Queue()
         self.is_downloading = False
         self.is_syncing = False
         self.active_downloader: Optional[SpotVaultDownloader] = None
+        self.last_device_status: Dict[str, Any] = {}
 
         self._build_ui()
         self._load_saved_urls()
         self._start_log_consumer()
         self._start_device_monitor()
+
+    def t(self, key: str, **kwargs: Any) -> str:
+        """
+        Translates key using active configured language.
+        """
+        return get_text(key, lang=self.config.language, **kwargs)
 
     def _build_ui(self) -> None:
         """
@@ -72,21 +87,46 @@ class SpotVaultApp(tk.Tk):
 
         title_label = tk.Label(
             header,
-            text="SpotVault v1.0.1",
+            text=self.t("app_header_title"),
             font=FONT_TITLE,
             fg=ACCENT_SPOTIFY,
             bg=BG_SURFACE
         )
         title_label.pack(side=tk.LEFT)
 
-        subtitle_label = tk.Label(
+        self.lbl_subtitle = tk.Label(
             header,
-            text="Spotify Çevrimdışı Arşivleyici & Android ADB Eşzamanlama Stüdyosu",
+            text=self.t("app_subtitle"),
             font=FONT_BODY,
             fg=TEXT_SECONDARY,
             bg=BG_SURFACE
         )
-        subtitle_label.pack(side=tk.LEFT, padx=15, pady=4)
+        self.lbl_subtitle.pack(side=tk.LEFT, padx=15, pady=4)
+
+        # Language Switcher
+        lang_frame = tk.Frame(header, bg=BG_SURFACE)
+        lang_frame.pack(side=tk.RIGHT, padx=5)
+
+        self.lbl_lang = tk.Label(
+            lang_frame,
+            text=self.t("lang_selector_label"),
+            font=FONT_BODY,
+            fg=TEXT_SECONDARY,
+            bg=BG_SURFACE
+        )
+        self.lbl_lang.pack(side=tk.LEFT, padx=(0, 6))
+
+        current_lang_display = "Türkçe (TR)" if self.config.language == "tr" else "English (EN)"
+        self.lang_var = tk.StringVar(value=current_lang_display)
+        self.lang_combobox = ttk.Combobox(
+            lang_frame,
+            textvariable=self.lang_var,
+            values=["Türkçe (TR)", "English (EN)"],
+            state="readonly",
+            width=13
+        )
+        self.lang_combobox.pack(side=tk.LEFT)
+        self.lang_combobox.bind("<<ComboboxSelected>>", self._on_language_changed)
 
         main_content = tk.Frame(self, bg=BG_MAIN, padx=15, pady=15)
         main_content.pack(fill=tk.BOTH, expand=True)
@@ -106,9 +146,9 @@ class SpotVaultApp(tk.Tk):
         """
         Creates format, bitrate, storage mode, and metadata option controls.
         """
-        card = tk.LabelFrame(
+        self.card_settings = tk.LabelFrame(
             parent,
-            text=" İndirme ve Format Ayarları ",
+            text=self.t("card_settings_title"),
             bg=BG_CARD,
             fg=TEXT_PRIMARY,
             font=FONT_SUBTITLE,
@@ -118,14 +158,14 @@ class SpotVaultApp(tk.Tk):
             highlightbackground=BORDER_COLOR,
             highlightthickness=1
         )
-        card.pack(fill=tk.X, pady=(0, 10))
+        self.card_settings.pack(fill=tk.X, pady=(0, 10))
 
-        fmt_label = tk.Label(card, text="Ses Formatı ve Kalite:", bg=BG_CARD, fg=TEXT_SECONDARY, font=FONT_HEADING)
-        fmt_label.pack(anchor=tk.W, pady=(4, 2))
+        self.lbl_format = tk.Label(self.card_settings, text=self.t("lbl_format"), bg=BG_CARD, fg=TEXT_SECONDARY, font=FONT_HEADING)
+        self.lbl_format.pack(anchor=tk.W, pady=(4, 2))
 
         self.format_var = tk.StringVar(value="MP3 (320 kbps)")
         fmt_dropdown = ttk.Combobox(
-            card,
+            self.card_settings,
             textvariable=self.format_var,
             values=["MP3 (320 kbps)", "MP3 (192 kbps)", "M4A (AAC auto)"],
             state="readonly"
@@ -133,13 +173,13 @@ class SpotVaultApp(tk.Tk):
         fmt_dropdown.pack(fill=tk.X, pady=(0, 8))
         fmt_dropdown.bind("<<ComboboxSelected>>", self._on_format_changed)
 
-        mode_label = tk.Label(card, text="Klasör ve Depolama Mimarisi:", bg=BG_CARD, fg=TEXT_SECONDARY, font=FONT_HEADING)
-        mode_label.pack(anchor=tk.W, pady=(4, 2))
+        self.lbl_storage = tk.Label(self.card_settings, text=self.t("lbl_storage"), bg=BG_CARD, fg=TEXT_SECONDARY, font=FONT_HEADING)
+        self.lbl_storage.pack(anchor=tk.W, pady=(4, 2))
 
         self.storage_var = tk.StringVar(value=self.config.storage_mode)
-        rb_standalone = tk.Radiobutton(
-            card,
-            text="Her Playlist Ayrı Klasör (Bağımsız M3U8)",
+        self.rb_standalone = tk.Radiobutton(
+            self.card_settings,
+            text=self.t("radio_standalone"),
             variable=self.storage_var,
             value="standalone",
             bg=BG_CARD,
@@ -149,11 +189,11 @@ class SpotVaultApp(tk.Tk):
             activeforeground=TEXT_PRIMARY,
             command=self._on_storage_mode_changed
         )
-        rb_standalone.pack(anchor=tk.W)
+        self.rb_standalone.pack(anchor=tk.W)
 
-        rb_pool = tk.Radiobutton(
-            card,
-            text="Tek Müzik Havuzu (Merkezi M3U8)",
+        self.rb_pool = tk.Radiobutton(
+            self.card_settings,
+            text=self.t("radio_pool"),
             variable=self.storage_var,
             value="pool_m3u8",
             bg=BG_CARD,
@@ -163,12 +203,12 @@ class SpotVaultApp(tk.Tk):
             activeforeground=TEXT_PRIMARY,
             command=self._on_storage_mode_changed
         )
-        rb_pool.pack(anchor=tk.W, pady=(0, 8))
+        self.rb_pool.pack(anchor=tk.W, pady=(0, 8))
 
         self.artwork_var = tk.BooleanVar(value=self.config.embed_artwork)
-        cb_art = tk.Checkbutton(
-            card,
-            text="Albüm Kapak Resmini Dosyaya Göm",
+        self.cb_art = tk.Checkbutton(
+            self.card_settings,
+            text=self.t("chk_artwork"),
             variable=self.artwork_var,
             bg=BG_CARD,
             fg=TEXT_PRIMARY,
@@ -177,12 +217,12 @@ class SpotVaultApp(tk.Tk):
             activeforeground=TEXT_PRIMARY,
             command=self._save_config
         )
-        cb_art.pack(anchor=tk.W)
+        self.cb_art.pack(anchor=tk.W)
 
         self.metadata_var = tk.BooleanVar(value=self.config.embed_metadata)
-        cb_meta = tk.Checkbutton(
-            card,
-            text="ID3 / Sanatçı Meta Etiketlerini Göm",
+        self.cb_meta = tk.Checkbutton(
+            self.card_settings,
+            text=self.t("chk_metadata"),
             variable=self.metadata_var,
             bg=BG_CARD,
             fg=TEXT_PRIMARY,
@@ -191,12 +231,12 @@ class SpotVaultApp(tk.Tk):
             activeforeground=TEXT_PRIMARY,
             command=self._save_config
         )
-        cb_meta.pack(anchor=tk.W)
+        self.cb_meta.pack(anchor=tk.W)
 
         self.lyrics_var = tk.BooleanVar(value=self.config.download_lyrics)
-        cb_lyrics = tk.Checkbutton(
-            card,
-            text="Senkronize Şarkı Sözlerini (.lrc) İndir",
+        self.cb_lyrics = tk.Checkbutton(
+            self.card_settings,
+            text=self.t("chk_lyrics"),
             variable=self.lyrics_var,
             bg=BG_CARD,
             fg=TEXT_PRIMARY,
@@ -205,15 +245,15 @@ class SpotVaultApp(tk.Tk):
             activeforeground=TEXT_PRIMARY,
             command=self._save_config
         )
-        cb_lyrics.pack(anchor=tk.W)
+        self.cb_lyrics.pack(anchor=tk.W)
 
     def _build_adb_card(self, parent: tk.Frame) -> None:
         """
         Creates Android device status badge, connection guide popup, and ADB Push action button.
         """
-        card = tk.LabelFrame(
+        self.card_adb = tk.LabelFrame(
             parent,
-            text=" Android ADB Eşzamanlama ",
+            text=self.t("card_adb_title"),
             bg=BG_CARD,
             fg=TEXT_PRIMARY,
             font=FONT_SUBTITLE,
@@ -223,14 +263,14 @@ class SpotVaultApp(tk.Tk):
             highlightbackground=BORDER_COLOR,
             highlightthickness=1
         )
-        card.pack(fill=tk.X)
+        self.card_adb.pack(fill=tk.X)
 
-        badge_row = tk.Frame(card, bg=BG_CARD)
+        badge_row = tk.Frame(self.card_adb, bg=BG_CARD)
         badge_row.pack(fill=tk.X, pady=(4, 8))
 
         self.device_badge = tk.Label(
             badge_row,
-            text="⚪ Cihaz Aranıyor...",
+            text=self.t("adb_disconnected"),
             bg="#334155",
             fg=TEXT_PRIMARY,
             font=FONT_HEADING,
@@ -239,30 +279,30 @@ class SpotVaultApp(tk.Tk):
         )
         self.device_badge.pack(side=tk.LEFT)
 
-        btn_refresh = tk.Button(
+        self.btn_refresh = tk.Button(
             badge_row,
-            text="Yenile",
+            text=self.t("btn_adb_refresh"),
             bg=BG_SURFACE,
             fg=TEXT_PRIMARY,
             relief=tk.FLAT,
             command=self._refresh_device_status
         )
-        btn_refresh.pack(side=tk.RIGHT)
+        self.btn_refresh.pack(side=tk.RIGHT)
 
-        btn_guide = tk.Button(
-            card,
-            text="ℹ Nasıl Bağlarım? (USB Hata Ayıklama Rehberi)",
+        self.btn_guide = tk.Button(
+            self.card_adb,
+            text=self.t("btn_adb_guide"),
             bg=BG_CARD,
             fg=ACCENT_PRIMARY,
             relief=tk.FLAT,
             anchor=tk.W,
             command=self._show_adb_guide
         )
-        btn_guide.pack(fill=tk.X, pady=(0, 8))
+        self.btn_guide.pack(fill=tk.X, pady=(0, 8))
 
         self.btn_push = tk.Button(
-            card,
-            text="📲 Telefona Aktar (ADB Push & Index)",
+            self.card_adb,
+            text=self.t("btn_adb_push"),
             bg=ACCENT_PRIMARY,
             fg="#ffffff",
             font=FONT_HEADING,
@@ -279,14 +319,14 @@ class SpotVaultApp(tk.Tk):
         card = tk.Frame(parent, bg=BG_MAIN)
         card.pack(fill=tk.X, pady=(0, 10))
 
-        url_label = tk.Label(
+        self.lbl_urls = tk.Label(
             card,
-            text="Spotify Playlist veya Albüm Linkleri (Her satıra bir link):",
+            text=self.t("lbl_urls"),
             bg=BG_MAIN,
             fg=TEXT_PRIMARY,
             font=FONT_HEADING
         )
-        url_label.pack(anchor=tk.W, pady=(0, 4))
+        self.lbl_urls.pack(anchor=tk.W, pady=(0, 4))
 
         self.url_text = tk.Text(
             card,
@@ -308,7 +348,7 @@ class SpotVaultApp(tk.Tk):
 
         self.btn_download = tk.Button(
             btn_bar,
-            text="🚀 İndirmeyi Başlat (Akıllı Eşleştirici Aktif)",
+            text=self.t("btn_download"),
             bg=ACCENT_SPOTIFY,
             fg="#ffffff",
             font=FONT_HEADING,
@@ -321,7 +361,7 @@ class SpotVaultApp(tk.Tk):
 
         self.btn_cancel = tk.Button(
             btn_bar,
-            text="⏹ İptal Et",
+            text=self.t("btn_cancel"),
             bg="#7f1d1d",
             fg="#fecaca",
             font=FONT_HEADING,
@@ -335,7 +375,7 @@ class SpotVaultApp(tk.Tk):
 
         self.btn_gen_m3u = tk.Button(
             btn_bar,
-            text="🎵 Playlistleri Yenile (M3U8)",
+            text=self.t("btn_regenerate_m3u"),
             bg=BG_SURFACE,
             fg=TEXT_PRIMARY,
             relief=tk.FLAT,
@@ -349,9 +389,9 @@ class SpotVaultApp(tk.Tk):
         """
         Creates scrolling terminal text area for real-time operation output.
         """
-        card = tk.LabelFrame(
+        self.card_console = tk.LabelFrame(
             parent,
-            text=" Canlı İşlem Terminali ",
+            text=f" {self.t('lbl_terminal')} ",
             bg=BG_CARD,
             fg=TEXT_PRIMARY,
             font=FONT_SUBTITLE,
@@ -361,10 +401,10 @@ class SpotVaultApp(tk.Tk):
             highlightbackground=BORDER_COLOR,
             highlightthickness=1
         )
-        card.pack(fill=tk.BOTH, expand=True)
+        self.card_console.pack(fill=tk.BOTH, expand=True)
 
         self.console = tk.Text(
-            card,
+            self.card_console,
             bg="#030712",
             fg="#22c55e",
             font=FONT_CONSOLE,
@@ -373,11 +413,60 @@ class SpotVaultApp(tk.Tk):
             padx=8,
             pady=8
         )
-        scrollbar = tk.Scrollbar(card, command=self.console.yview)
+        scrollbar = tk.Scrollbar(self.card_console, command=self.console.yview)
         self.console.configure(yscrollcommand=scrollbar.set)
 
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.console.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+    def _on_language_changed(self, event: Optional[Any] = None) -> None:
+        """
+        Handles language change event, updates configuration and refreshes all UI text dynamically.
+        """
+        val = self.lang_var.get()
+        new_lang = "en" if "EN" in val else "tr"
+        if new_lang != self.config.language:
+            self.config.language = new_lang
+            self._save_config()
+            self._apply_translations()
+
+    def _apply_translations(self) -> None:
+        """
+        Dynamically applies translations across all UI components.
+        """
+        self.title(self.t("app_title"))
+        self.lbl_subtitle.config(text=self.t("app_subtitle"))
+        self.lbl_lang.config(text=self.t("lang_selector_label"))
+
+        # Settings
+        self.card_settings.config(text=self.t("card_settings_title"))
+        self.lbl_format.config(text=self.t("lbl_format"))
+        self.lbl_storage.config(text=self.t("lbl_storage"))
+        self.rb_standalone.config(text=self.t("radio_standalone"))
+        self.rb_pool.config(text=self.t("radio_pool"))
+        self.cb_art.config(text=self.t("chk_artwork"))
+        self.cb_meta.config(text=self.t("chk_metadata"))
+        self.cb_lyrics.config(text=self.t("chk_lyrics"))
+
+        # ADB
+        self.card_adb.config(text=self.t("card_adb_title"))
+        self.btn_refresh.config(text=self.t("btn_adb_refresh"))
+        self.btn_guide.config(text=self.t("btn_adb_guide"))
+        if not self.is_syncing:
+            self.btn_push.config(text=self.t("btn_adb_push"))
+
+        # Download triggers
+        self.lbl_urls.config(text=self.t("lbl_urls"))
+        if not self.is_downloading:
+            self.btn_download.config(text=self.t("btn_download"))
+            self.btn_cancel.config(text=self.t("btn_cancel"))
+        self.btn_gen_m3u.config(text=self.t("btn_regenerate_m3u"))
+
+        # Console
+        self.card_console.config(text=f" {self.t('lbl_terminal')} ")
+
+        # Re-apply badge text with new language
+        self._update_device_badge(self.last_device_status)
 
     def log_message(self, message: str) -> None:
         """
@@ -413,26 +502,28 @@ class SpotVaultApp(tk.Tk):
         """
         Updates device status badge color and text.
         """
+        self.last_device_status = status
         state = status.get("state", "none")
         serial = status.get("serial", "")
 
         if state == "device":
             self.device_badge.config(
-                text=f"🟢 Bağlı: {serial}",
+                text=self.t("adb_connected", device=serial),
                 bg="#064e3b",
                 fg="#a7f3d0"
             )
             self.btn_push.config(state=tk.NORMAL)
         elif state == "unauthorized":
+            unauth_msg = "🟡 Yetkisiz: Telefonda İzin Verin" if self.config.language == "tr" else "🟡 Unauthorized: Allow on phone"
             self.device_badge.config(
-                text="🟡 Yetkisiz: Telefonda İzin Verin",
+                text=unauth_msg,
                 bg="#78350f",
                 fg="#fde68a"
             )
             self.btn_push.config(state=tk.DISABLED)
         else:
             self.device_badge.config(
-                text="⚪ Cihaz Bağlı Değil",
+                text=self.t("adb_disconnected"),
                 bg="#334155",
                 fg=TEXT_SECONDARY
             )
@@ -442,25 +533,15 @@ class SpotVaultApp(tk.Tk):
         """
         Manually triggers an immediate device poll.
         """
-        self.device_badge.config(text="⚪ Taranıyor...", bg="#334155", fg=TEXT_SECONDARY)
+        scan_msg = "⚪ Taranıyor..." if self.config.language == "tr" else "⚪ Scanning..."
+        self.device_badge.config(text=scan_msg, bg="#334155", fg=TEXT_SECONDARY)
         threading.Thread(target=self._query_device_state_async, daemon=True).start()
 
     def _show_adb_guide(self) -> None:
         """
         Displays modal instructions on enabling USB debugging and trusting PC.
         """
-        guide_text = (
-            "1. Telefonunuzda Ayarlar -> Telefon Hakkında bölümüne gidin.\n"
-            "2. 'Derleme Numarası' (Build Number) seçeneğine 7 kez arka arkaya dokunun.\n"
-            "   (Artık bir geliştiricisiniz mesajı görünecektir).\n\n"
-            "3. Ayarlar -> Ek Ayarlar -> Geliştirici Seçenekleri menüsüne girin.\n"
-            "4. 'USB Hata Ayıklama' (USB Debugging) anahtarını açın.\n\n"
-            "5. Telefonu USB kablosuyla bilgisayara bağlayın.\n"
-            "6. Telefon ekranında 'Bu bilgisayara izin verilsin mi?' uyarısı çıktığında\n"
-            "   'Bu bilgisayara her zaman izin ver' kutusunu işaretleyip 'Tamam' deyin.\n\n"
-            "7. Ardından buradaki 'Yenile' butonuna tıklayın. Yeşil ışık yanacaktır."
-        )
-        messagebox.showinfo("Android USB Hata Ayıklama Rehberi", guide_text)
+        messagebox.showinfo(self.t("guide_window_title"), self.t("guide_content"))
 
     def _on_format_changed(self, event: Optional[Any] = None) -> None:
         """
@@ -512,57 +593,57 @@ class SpotVaultApp(tk.Tk):
         """
         if self.active_downloader:
             self.active_downloader.cancel()
-            self.btn_cancel.config(state=tk.DISABLED, text="⏳ Durduruluyor...")
+            self.btn_cancel.config(state=tk.DISABLED, text=self.t("btn_cancel_active"))
 
     def _start_download_thread(self) -> None:
         """
         Validates input and launches background downloader execution.
         """
         if self.is_downloading:
-            messagebox.showwarning("İşlem Devam Ediyor", "Şu anda devam eden bir indirme işlemi var.")
+            messagebox.showwarning(self.t("title_warning"), self.t("msg_already_downloading"))
             return
 
         urls_raw = self.url_text.get("1.0", tk.END).strip()
         urls = [line.strip() for line in urls_raw.splitlines() if line.strip() and not line.startswith("#")]
 
         if not urls:
-            messagebox.showwarning("Eksik URL", "Lütfen en az bir Spotify playlist veya albüm linki girin.")
+            messagebox.showwarning(self.t("title_warning"), self.t("msg_no_urls"))
             return
 
         self.is_downloading = True
-        self.btn_download.config(state=tk.DISABLED, text="⏳ İndiriliyor...")
-        self.btn_cancel.config(state=tk.NORMAL, text="⏹ İptal Et")
+        self.btn_download.config(state=tk.DISABLED, text=self.t("btn_download_active"))
+        self.btn_cancel.config(state=tk.NORMAL, text=self.t("btn_cancel"))
         threading.Thread(target=self._run_download_task, args=(urls,), daemon=True).start()
 
     def _run_download_task(self, urls: List[str]) -> None:
         """
         Executes download and fallback matcher pipeline across provided URLs with try/finally safety.
         """
-        self.log_message(f"=== SpotVault İndirme İşlemi Başladı ({len(urls)} Liste) ===")
+        self.log_message(self.t("log_start_download", count=len(urls)))
         try:
             self.active_downloader = SpotVaultDownloader(self.config, log_callback=self.log_message)
 
             for i, url in enumerate(urls, 1):
                 if self.active_downloader.cancel_requested:
-                    self.log_message("\n[INFO] İndirme kullanıcı tarafından iptal edildi.")
+                    self.log_message(f"\n{self.t('log_download_cancelled')}")
                     break
-                self.log_message(f"\n--- [{i}/{len(urls)}] İndiriliyor: {url} ---")
+                self.log_message(f"\n{self.t('log_download_item', index=i, total=len(urls), url=url)}")
                 self.active_downloader.download_playlist(url)
 
             if not self.active_downloader.cancel_requested:
-                self.log_message("\n=== Tüm İndirmeler Tamamlandı. Playlistler Oluşturuluyor... ===")
+                self.log_message(f"\n{self.t('log_playlists_updating')}")
                 self._regenerate_playlists(pool_mapping=self.active_downloader.pool_playlist_mapping)
-                self.after(0, lambda: messagebox.showinfo("Tamamlandı", "Tüm parçalar ve çalma listeleri başarıyla arşivlendi."))
+                self.after(0, lambda: messagebox.showinfo(self.t("title_success"), self.t("msg_download_complete")))
         except Exception as e:
-            self.log_message(f"\n[HATA] İndirme işlemi sırasında hata oluştu: {e}")
-            self.after(0, lambda err=e: messagebox.showerror("Hata", f"İndirme hatası:\n{err}"))
+            self.log_message(f"\n[HATA] {e}")
+            self.after(0, lambda err=e: messagebox.showerror(self.t("title_error"), self.t("msg_download_error", error=str(err))))
         finally:
             self.is_downloading = False
             self.active_downloader = None
-            self.after(0, lambda: self.btn_download.config(state=tk.NORMAL, text="🚀 İndirmeyi Başlat (Akıllı Eşleştirici Aktif)"))
-            self.after(0, lambda: self.btn_cancel.config(state=tk.DISABLED, text="⏹ İptal Et"))
+            self.after(0, lambda: self.btn_download.config(state=tk.NORMAL, text=self.t("btn_download")))
+            self.after(0, lambda: self.btn_cancel.config(state=tk.DISABLED, text=self.t("btn_cancel")))
 
-    def _regenerate_playlists(self, pool_mapping: Optional[Dict[str, List[str]]] = None) -> None:
+    def _regenerate_playlists(self, pool_mapping: Optional[Dict[str, List[str]]] = None) -> List[Path]:
         """
         Generates updated M3U8 playlist files for local tracks.
         """
@@ -575,13 +656,17 @@ class SpotVaultApp(tk.Tk):
             storage_mode=self.config.storage_mode,
             pool_playlist_mapping=pool_mapping
         )
-        self.log_message(f"[PLAYLIST] {len(created)} adet UTF-8 M3U8 çalma listesi güncellendi.")
+        if created:
+            self.log_message(self.t("log_playlists_updated", count=len(created)))
+        else:
+            self.log_message(self.t("log_no_playlists_created"))
+        return created
 
     def _start_regenerate_playlists_thread(self) -> None:
         """
         Launches an asynchronous worker thread to regenerate M3U8 playlists without freezing the GUI.
         """
-        self.btn_gen_m3u.config(state=tk.DISABLED, text="⏳ Yenileniyor...")
+        self.btn_gen_m3u.config(state=tk.DISABLED, text=self.t("btn_regenerate_m3u_active"))
         threading.Thread(target=self._run_regenerate_playlists_task, daemon=True).start()
 
     def _run_regenerate_playlists_task(self) -> None:
@@ -589,20 +674,23 @@ class SpotVaultApp(tk.Tk):
         Worker execution for background M3U8 playlist generation.
         """
         try:
-            self._regenerate_playlists()
-            self.after(0, lambda: messagebox.showinfo("Başarılı", "Çalma listeleri (M3U8) başarıyla yenilendi."))
+            created = self._regenerate_playlists()
+            if not created:
+                self.after(0, lambda: messagebox.showinfo(self.t("title_info"), self.t("msg_no_playlists_found")))
+            else:
+                self.after(0, lambda c=len(created): messagebox.showinfo(self.t("title_success"), self.t("msg_playlists_regenerated", count=c)))
         except Exception as e:
             self.log_message(f"[HATA] Playlist yenileme başarısız: {e}")
-            self.after(0, lambda err=e: messagebox.showerror("Hata", f"Playlist yenileme hatası:\n{err}"))
+            self.after(0, lambda err=e: messagebox.showerror(self.t("title_error"), self.t("msg_playlists_error", error=str(err))))
         finally:
-            self.after(0, lambda: self.btn_gen_m3u.config(state=tk.NORMAL, text="🎵 Playlistleri Yenile (M3U8)"))
+            self.after(0, lambda: self.btn_gen_m3u.config(state=tk.NORMAL, text=self.t("btn_regenerate_m3u")))
 
     def _start_adb_push_thread(self) -> None:
         """
         Launches background thread to push local music files to Android.
         """
         if self.is_syncing:
-            messagebox.showwarning("İşlem Devam Ediyor", "Aktarım zaten devam ediyor.")
+            messagebox.showwarning(self.t("title_warning"), self.t("msg_sync_in_progress"))
             return
 
         base_dir = Path(self.config.output_dir)
@@ -610,32 +698,32 @@ class SpotVaultApp(tk.Tk):
             base_dir = Path(__file__).resolve().parent.parent / self.config.output_dir
 
         if not base_dir.exists():
-            messagebox.showwarning("Klasör Yok", f"İndirilenler klasörü bulunamadı: {base_dir}")
+            messagebox.showwarning(self.t("title_warning"), self.t("msg_downloads_dir_missing", path=str(base_dir)))
             return
 
         self.is_syncing = True
-        self.btn_push.config(state=tk.DISABLED, text="⏳ Aktarılıyor...")
+        self.btn_push.config(state=tk.DISABLED, text=self.t("btn_adb_push_active"))
         threading.Thread(target=self._run_adb_push_task, args=(base_dir,), daemon=True).start()
 
     def _run_adb_push_task(self, local_dir: Path) -> None:
         """
         Executes ADB push and media scanner broadcast.
         """
-        self.log_message("\n=== Android ADB Telefona Aktarım Başlatıldı ===")
+        self.log_message(f"\n{self.t('log_adb_push_start')}")
         try:
             res = self.adb_engine.sync_library(
                 local_music_dir=local_dir,
                 remote_music_dir=self.config.adb_target
             )
             trans_mb = res.get("transferred_bytes", 0) / (1024 * 1024)
-            self.log_message(f"=== Başarıyla Aktarıldı: {trans_mb:.2f} MB ===")
-            self.after(0, lambda: messagebox.showinfo("Aktarım Başarılı", "Müzikler ve çalma listeleri telefona aktarıldı."))
+            self.log_message(f"=== {trans_mb:.2f} MB ===\n{self.t('log_adb_push_complete')}")
+            self.after(0, lambda: messagebox.showinfo(self.t("title_success"), self.t("msg_sync_success")))
         except Exception as e:
-            self.log_message(f"[HATA] Aktarım başarısız: {e}")
-            self.after(0, lambda err=e: messagebox.showerror("Aktarım Hatası", str(err)))
+            self.log_message(self.t("log_adb_push_error", error=str(e)))
+            self.after(0, lambda err=e: messagebox.showerror(self.t("title_error"), self.t("msg_sync_error", error=str(err))))
         finally:
             self.is_syncing = False
-            self.after(0, lambda: self.btn_push.config(state=tk.NORMAL, text="📲 Telefona Aktar (ADB Push)"))
+            self.after(0, lambda: self.btn_push.config(state=tk.NORMAL, text=self.t("btn_adb_push")))
 
 
 def launch_gui() -> None:

@@ -136,19 +136,32 @@ class AdbSyncEngine:
                     pass
         return total
 
-    def trigger_media_scanner(self, remote_path: str = "/sdcard/Music/Muzikler") -> None:
+    def trigger_media_scanner(self, remote_path: str = "/sdcard/Music/Muzikler") -> bool:
         """
         Broadcasts media scan intent to force Android to index freshly transferred audio files.
+        Returns True if the broadcast command completed successfully without errors.
         """
         self.log(f"[ADB] Triggering Android MediaScanner for: {remote_path}")
         try:
-            self.run_adb_command([
+            res = self.run_adb_command([
                 "shell", "am", "broadcast",
                 "-a", "android.intent.action.MEDIA_SCANNER_SCAN_FILE",
                 "-d", f"file://{remote_path}"
             ])
+            if res.returncode != 0:
+                self.log(f"[ADB WARNING] MediaScanner broadcast failed (exit code {res.returncode}): {res.stderr.strip()}")
+                return False
+
+            output = f"{res.stdout or ''} {res.stderr or ''}"
+            if "Error" in output or "Exception" in output:
+                self.log(f"[ADB WARNING] MediaScanner broadcast completed with warnings: {output.strip()}")
+                return False
+
+            self.log(f"[ADB] MediaScanner broadcast completed successfully for: {remote_path}")
+            return True
         except Exception as e:
-            self.log(f"[ADB] MediaScanner broadcast warning: {e}")
+            self.log(f"[ADB WARNING] MediaScanner broadcast exception: {e}")
+            return False
 
     def sync_library(
         self,

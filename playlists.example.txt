@@ -4,7 +4,9 @@
 # Instructions:
 # 1. Rename this file to `playlists.txt` (or create a new `playlists.txt`).
 # 2. Paste your Spotify playlist, album, or track links below (one per line).
-# 3. Double-click `start.bat` to begin downloading!
+# 3. Usage options:
+#    - GUI Mode: Double-click `start.bat` (or `./start.sh` on Linux) — URLs are loaded automatically!
+#    - CLI Mode: Run `start.bat --file playlists.txt` (or `./start.sh --file playlists.txt`)
 # ==============================================================================
 
 # Examples:

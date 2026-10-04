@@ -2,6 +2,7 @@ import json
 import os
 import re
 import shutil
+import unicodedata
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import requests
@@ -11,6 +12,8 @@ from mutagen.id3 import ID3, APIC, TIT2, TPE1, TALB, TDRC, TRCK
 from mutagen.mp4 import MP4, MP4Cover
 from core.config import resolve_ffmpeg_path
 
+
+MIN_OFFICIAL_CONFIDENCE: float = 70.0
 
 RECORD_LABEL_WHITELIST = [
     # TR (Türkiye) Yerel Resmi Plak Şirketleri ve Distribütör Kanalları
@@ -83,6 +86,27 @@ RECORD_LABEL_WHITELIST = [
 ]
 
 
+def normalize_for_matching(text: str) -> str:
+    """
+    Normalizes text for robust channel and label matching across Turkish and English:
+    1. Unifies Turkish I/ı/İ/i characters to ASCII 'i'.
+    2. Strips combining diacritics via NFKD normalization (ö->o, ü->u, ş->s, ç->c, ğ->g).
+    3. Normalizes whitespace and lowercases.
+    """
+    if not text:
+        return ""
+    t = text.replace("İ", "i").replace("I", "i").replace("ı", "i").lower()
+    nfkd = unicodedata.normalize("NFKD", t)
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).strip()
+
+
+def turkish_lower(text: str) -> str:
+    """
+    Alias to normalize_for_matching ensuring backward-compatible normalization.
+    """
+    return normalize_for_matching(text)
+
+
 _CUSTOM_LABELS_CACHE: Dict[str, tuple] = {}
 
 
@@ -90,6 +114,7 @@ def load_custom_labels(file_path: Optional[Union[str, Path]] = None, use_cache: 
     """
     Loads custom record labels from a text file, filtering empty lines and comments.
     Utilizes an in-memory mtime cache to avoid redundant filesystem I/O.
+    Supports Windows Notepad UTF-8 with BOM automatically (utf-8-sig).
     """
     if file_path is None:
         target_path = Path(__file__).resolve().parent.parent / "custom_labels.txt"
@@ -112,11 +137,11 @@ def load_custom_labels(file_path: Optional[Union[str, Path]] = None, use_cache: 
 
     labels: List[str] = []
     try:
-        with open(target_path, "r", encoding="utf-8") as f:
+        with open(target_path, "r", encoding="utf-8-sig") as f:
             for line in f:
                 line_str = line.strip()
                 if line_str and not line_str.startswith("#"):
-                    labels.append(line_str.lower())
+                    labels.append(turkish_lower(line_str))
     except Exception:
         return []
 
@@ -131,9 +156,9 @@ def get_active_whitelist(custom_labels: Optional[List[str]] = None) -> List[str]
     Returns the comprehensive active label whitelist by combining built-in labels,
     runtime custom labels, and cached entries from custom_labels.txt.
     """
-    active = list(RECORD_LABEL_WHITELIST)
+    active = [turkish_lower(lbl) for lbl in RECORD_LABEL_WHITELIST]
     if custom_labels:
-        active.extend(lbl.lower().strip() for lbl in custom_labels if lbl and lbl.strip())
+        active.extend(turkish_lower(lbl).strip() for lbl in custom_labels if lbl and lbl.strip())
 
     file_labels = load_custom_labels()
     if file_labels:
@@ -177,8 +202,8 @@ def is_blacklisted(title: str, channel: str, original_title: Optional[str] = Non
     """
     Checks if a candidate title or channel contains unwanted noise, fan edits, or unauthorized remixes.
     """
-    normalized_title = title.lower()
-    normalized_channel = channel.lower()
+    normalized_title = turkish_lower(title)
+    normalized_channel = turkish_lower(channel)
     combined = f"{normalized_title} {normalized_channel}"
 
     for kw in BLACKLIST_KEYWORDS:
@@ -187,7 +212,7 @@ def is_blacklisted(title: str, channel: str, original_title: Optional[str] = Non
             return True
 
     if "remix" in normalized_title:
-        original_has_remix = original_title is not None and "remix" in original_title.lower()
+        original_has_remix = original_title is not None and "remix" in turkish_lower(original_title)
         if not original_has_remix:
             return True
 
@@ -200,7 +225,7 @@ def is_channel_whitelisted(channel: str, custom_labels: Optional[List[str]] = No
     Supports runtime custom labels and auto-loaded custom_labels.txt.
     Enforces word-boundary matching on short labels to prevent false positives.
     """
-    normalized = channel.lower().strip()
+    normalized = turkish_lower(channel).strip()
 
     if normalized.endswith("- topic") or normalized.endswith(" topic"):
         return True
@@ -255,8 +280,8 @@ def score_candidate(
         if is_whitelisted or is_artist_channel:
             score = 75.0
         else:
-            # Unverified fan/bootleg upload without duration verification cannot pass
-            return 30.0
+            # Unverified fan/bootleg upload without duration verification is strictly disqualified
+            return 0.0
 
     if is_channel_whitelisted(channel, custom_labels=custom_labels):
         score += 50.0
@@ -307,7 +332,8 @@ def find_best_official_candidate(
     spotify_info: Dict[str, Any],
     max_candidates: int = 5,
     tolerance: float = 3.0,
-    custom_labels: Optional[List[str]] = None
+    custom_labels: Optional[List[str]] = None,
+    min_confidence: float = MIN_OFFICIAL_CONFIDENCE
 ) -> Optional[Dict[str, Any]]:
     """
     Executes targeted queries to find the most accurate verified or official YouTube candidate.
@@ -339,7 +365,7 @@ def find_best_official_candidate(
         if highest_score >= 120.0:
             break
 
-    return best_candidate if highest_score >= 70.0 else None
+    return best_candidate if highest_score >= min_confidence else None
 
 
 def fetch_spotify_track_metadata(spotify_url: str) -> Optional[Dict[str, Any]]:

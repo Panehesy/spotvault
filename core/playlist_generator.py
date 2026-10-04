@@ -95,6 +95,9 @@ def generate_all_playlists(
     base_dir = Path(output_dir)
     generated_files: List[Path] = []
 
+    if not base_dir.exists():
+        return generated_files
+
     if storage_mode == "standalone":
         for entry in base_dir.iterdir():
             if entry.is_dir() and entry.name not in {"Playlists", "Pool"}:
@@ -145,17 +148,31 @@ def generate_all_playlists(
                 pass
 
         if active_mapping:
-            for pl_name, filenames in active_mapping.items():
+            mapping_modified = False
+            for pl_name, filenames in list(active_mapping.items()):
                 tracks = []
+                valid_filenames = []
                 for fname in filenames:
                     file_path = pool_dir / fname
-                    meta = inspect_audio_file(file_path) if file_path.exists() else {"artist": "", "title": fname, "duration": -1}
+                    if not file_path.exists():
+                        mapping_modified = True
+                        continue
+                    meta = inspect_audio_file(file_path)
                     meta["relative_path"] = f"../Pool/{fname}"
                     tracks.append(meta)
+                    valid_filenames.append(fname)
 
+                active_mapping[pl_name] = valid_filenames
                 playlist_file = playlists_dir / f"{pl_name}.m3u8"
                 write_playlist_file(playlist_file, tracks)
                 generated_files.append(playlist_file)
+
+            if mapping_modified:
+                try:
+                    with open(mapping_file, "w", encoding="utf-8") as f:
+                        json.dump(active_mapping, f, indent=2, ensure_ascii=False)
+                except Exception:
+                    pass
         elif pool_dir.exists():
             pool_files = [
                 f for f in pool_dir.iterdir()

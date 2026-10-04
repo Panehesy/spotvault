@@ -67,6 +67,34 @@ emulator-5554\toffline
                 engine.sync_library(local_music_dir=tmpdir)
             self.assertIn("Failed to create remote playlist directory", str(ctx.exception))
 
+    def test_trigger_media_scanner_success(self):
+        from unittest.mock import MagicMock
+        from core.adb_sync import AdbSyncEngine
+
+        engine = AdbSyncEngine()
+        mock_res = MagicMock()
+        mock_res.returncode = 0
+        mock_res.stdout = "Broadcast completed: result=0"
+        mock_res.stderr = ""
+        engine.run_adb_command = MagicMock(return_value=mock_res)
+
+        success = engine.trigger_media_scanner("/sdcard/Music/Muzikler")
+        self.assertTrue(success)
+
+    def test_trigger_media_scanner_failure(self):
+        from unittest.mock import MagicMock
+        from core.adb_sync import AdbSyncEngine
+
+        engine = AdbSyncEngine()
+        mock_res = MagicMock()
+        mock_res.returncode = 1
+        mock_res.stdout = ""
+        mock_res.stderr = "Error: unable to send broadcast"
+        engine.run_adb_command = MagicMock(return_value=mock_res)
+
+        success = engine.trigger_media_scanner("/sdcard/Music/Muzikler")
+        self.assertFalse(success)
+
 
 if __name__ == "__main__":
     unittest.main()

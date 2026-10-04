@@ -105,7 +105,44 @@ class TestSmartOfficialMatcher(unittest.TestCase):
         score_official = score_candidate(spotify_info, cand_topic)
         score_fan = score_candidate(spotify_info, cand_fan)
         self.assertGreater(score_official, 70.0)
-        self.assertLess(score_fan, 70.0)
+        self.assertEqual(score_fan, 0.0)
+
+    def test_find_best_official_candidate_confidence_threshold(self):
+        from core.matcher import find_best_official_candidate, MIN_OFFICIAL_CONFIDENCE
+        self.assertEqual(MIN_OFFICIAL_CONFIDENCE, 70.0)
+
+    def test_turkish_lower_normalization(self):
+        from core.matcher import turkish_lower, normalize_for_matching
+        self.assertEqual(turkish_lower("KADIKÖY"), "kadikoy")
+        self.assertEqual(turkish_lower("kadıköy"), "kadikoy")
+        self.assertEqual(turkish_lower("İSTANBUL"), "istanbul")
+        self.assertEqual(turkish_lower("istanbul"), "istanbul")
+        self.assertEqual(turkish_lower("IŞIK"), "isik")
+        self.assertEqual(turkish_lower("ENGLISH"), "english")
+        self.assertEqual(normalize_for_matching("KADIKÖY"), normalize_for_matching("kadıköy"))
+
+    def test_turkish_channel_whitelisting(self):
+        # Upper case Turkish letters with I / İ should match lowercase custom labels
+        self.assertTrue(is_channel_whitelisted("KADIKÖY MÜZİK", custom_labels=["kadıköy müzik"]))
+        self.assertTrue(is_channel_whitelisted("İSTANBUL RECORDS", custom_labels=["istanbul records"]))
+
+    def test_utf8_bom_custom_labels(self):
+        from core.matcher import load_custom_labels
+        import tempfile
+        from pathlib import Path
+
+        # Create file with Windows Notepad UTF-8 BOM (\xef\xbb\xbf)
+        with tempfile.NamedTemporaryFile("wb", delete=False, suffix=".txt") as tmp:
+            tmp.write(b"\xef\xbb\xbfkadikoy_bom_label\nsecond_label\n")
+            tmp_path = Path(tmp.name)
+
+        try:
+            labels = load_custom_labels(tmp_path, use_cache=False)
+            self.assertEqual(labels[0], "kadikoy_bom_label")
+            self.assertFalse(labels[0].startswith("\ufeff"))
+            self.assertIn("second_label", labels)
+        finally:
+            tmp_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

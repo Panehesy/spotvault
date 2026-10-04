@@ -11,14 +11,18 @@ from core.downloader import SpotVaultDownloader
 from core.playlist_generator import generate_all_playlists
 
 
+__version__ = "1.0.0"
+
+
 def parse_cli_arguments(args: Optional[List[str]] = None) -> argparse.Namespace:
     """
     Parses command line arguments, defaulting to GUI mode if no CLI action parameters are supplied.
     """
     parser = argparse.ArgumentParser(
-        description="SpotVault v1.0.1 — Offline Spotify Downloader & Android ADB Sync Studio"
+        description=f"SpotVault v{__version__} - Offline Spotify Downloader & Android ADB Sync Studio"
     )
 
+    parser.add_argument("--version", action="version", version=f"SpotVault v{__version__}")
     parser.add_argument("--gui", action="store_true", help="Launch the graphical interface")
     parser.add_argument("--cli", action="store_true", help="Force headless command-line execution")
     parser.add_argument("--url", type=str, help="Single Spotify playlist, album, or track URL to download")

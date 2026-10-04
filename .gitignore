@@ -1,4 +1,4 @@
-# SpotVault v1.0.1 - Git Ignore
+# SpotVault - Git Ignore
 
 # Audio Downloads & Playlists
 downloads/
@@ -42,3 +42,8 @@ Thumbs.db
 desktop.ini
 .vscode/
 .idea/
+
+# Virtual Environments
+.venv/
+venv/
+env/

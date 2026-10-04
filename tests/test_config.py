@@ -25,6 +25,19 @@ class TestSpotVaultConfig(unittest.TestCase):
         with self.assertRaises(ValueError):
             SpotVaultConfig(storage_mode="unsupported_mode")
 
+    def test_language_config(self):
+        # Default is Turkish
+        config = SpotVaultConfig()
+        self.assertEqual(config.language, "tr")
+
+        # English configuration
+        config_en = SpotVaultConfig(language="en")
+        self.assertEqual(config_en.language, "en")
+
+        # Invalid language gracefully falls back to default "tr"
+        config_invalid = SpotVaultConfig(language="fr")
+        self.assertEqual(config_invalid.language, "tr")
+
     def test_json_roundtrip(self):
         config = SpotVaultConfig(audio_format="m4a", bitrate="auto", storage_mode="pool_m3u8")
         json_data = config.to_json()

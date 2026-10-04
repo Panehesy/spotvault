@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    SpotVault v1.0.1 PowerShell Automation Script
+    SpotVault v1.0.0 PowerShell Automation Script
 .DESCRIPTION
     Runs headless download, playlist generation, and ADB sync operations.
 #>

@@ -23,15 +23,20 @@ class SpotVaultConfig:
     playlists_file: str = "playlists.txt"
     custom_labels: List[str] = field(default_factory=list)
     custom_labels_file: str = "custom_labels.txt"
+    language: str = "tr"
 
     VALID_AUDIO_FORMATS = {"mp3", "m4a"}
     VALID_BITRATES = {"320k", "192k", "auto"}
     VALID_STORAGE_MODES = {"standalone", "pool_m3u8"}
+    VALID_LANGUAGES = {"tr", "en"}
 
     def __post_init__(self) -> None:
         """
         Validates configuration field constraints upon initialization.
         """
+        if self.language not in self.VALID_LANGUAGES:
+            self.language = "tr"
+
         if self.audio_format not in self.VALID_AUDIO_FORMATS:
             raise ValueError(
                 f"Invalid audio format '{self.audio_format}'. Supported: {sorted(self.VALID_AUDIO_FORMATS)}"
